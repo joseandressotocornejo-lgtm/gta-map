@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>MiniMapa GTA Navegación</title>
+<title>GTA MiniMap Navi</title>
 
 <link href="https://cdn.maptiler.com/maptiler-sdk-js/v2.2.0/maptiler-sdk.css" rel="stylesheet"/>
 
@@ -10,18 +10,34 @@
 body {
   margin: 0;
   background: #d9d9d9;
+  height: 100vh;
   display: flex;
-  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  padding-top: 20px;
   font-family: Arial;
 }
 
-#status {
-  margin-bottom: 10px;
-  font-size: 14px;
+#app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
 
+/* barra búsqueda */
+#searchBar {
+  display: flex;
+  gap: 8px;
+}
+
+input {
+  padding: 10px;
+  width: 230px;
+  border: 2px solid black;
+  background: #f2f2f2;
+}
+
+/* HUD */
 #hud {
   position: relative;
   width: 340px;
@@ -42,6 +58,7 @@ body {
   height: 100%;
 }
 
+/* ocultar controles originales */
 .maptiler-control-container,
 .maplibregl-control-container,
 .maplibregl-ctrl,
@@ -49,14 +66,21 @@ body {
   display: none !important;
 }
 
+/* jugador */
 #player {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) rotate(180deg);
+  transition: transform 0.5s ease;
   pointer-events: none;
 }
 
+#player.perspective {
+  transform: translate(-50%, -50%) rotate(180deg) scaleY(0.7);
+}
+
+/* norte */
 #north {
   position: absolute;
   top: -10px;
@@ -69,12 +93,48 @@ body {
   padding: 6px 12px;
   border-radius: 20px;
 }
+
+/* botones HUD */
+.hudButtons {
+  display: flex;
+  gap: 12px;
+}
+
+button {
+  width: 52px;
+  height: 52px;
+  background: black;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+button svg {
+  width: 26px;
+  height: 26px;
+  stroke: white;
+  fill: none;
+  stroke-width: 2.5;
+}
 </style>
 </head>
 
 <body>
 
-<div id="status">Activando GPS…</div>
+<div id="app">
+
+<div id="searchBar">
+  <input id="address" placeholder="Destino…">
+  <button onclick="searchAddress()">
+    <svg viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="6"></circle>
+      <line x1="16" y1="16" x2="22" y2="22"></line>
+    </svg>
+  </button>
+</div>
 
 <div id="hud">
   <div id="mapContainer">
@@ -91,40 +151,112 @@ body {
   <div id="north">N</div>
 </div>
 
+<div class="hudButtons">
+
+  <!-- perspectiva -->
+  <button onclick="togglePerspective()">
+    <svg viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8"></circle>
+      <line x1="12" y1="4" x2="12" y2="20"></line>
+    </svg>
+  </button>
+
+  <!-- centrar -->
+  <button onclick="centerGPS()">
+    <svg viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8"></circle>
+      <circle cx="12" cy="12" r="2"></circle>
+    </svg>
+  </button>
+
+</div>
+
+</div>
+
 <script src="https://cdn.maptiler.com/maptiler-sdk-js/v2.2.0/maptiler-sdk.umd.js"></script>
 
 <script>
 maptilersdk.config.apiKey = "V8DFSo7qMSgAu0JLPgjH";
 
-const status = document.getElementById("status");
+let userLocation = null;
+let perspective = false;
+const player = document.getElementById("player");
 
 const map = new maptilersdk.Map({
   container: 'map',
   style: 'https://api.maptiler.com/maps/2b36665a-5454-4b57-9676-ff47dc5d11cc/style.json',
-  center: [-70.648729, -33.447173], // fallback Santiago
+  center: [-70.648729, -33.447173],
   zoom: 16,
+  pitch: 0,
   attributionControl: false
 });
 
-function gpsSuccess(pos) {
-  const coords = [pos.coords.longitude, pos.coords.latitude];
-  map.setCenter(coords);
-  status.innerText = "GPS activo ✔";
+navigator.geolocation.watchPosition(pos => {
+  userLocation = [pos.coords.longitude, pos.coords.latitude];
+  map.setCenter(userLocation);
+});
+
+function centerGPS() {
+  if (userLocation) map.setCenter(userLocation);
 }
 
-function gpsError(err) {
-  status.innerText = "GPS bloqueado ❌ usando ubicación demo";
-  console.log(err);
+function togglePerspective() {
+  perspective = !perspective;
+
+  map.easeTo({
+    pitch: perspective ? 60 : 0,
+    duration: 600
+  });
+
+  player.classList.toggle("perspective", perspective);
 }
 
-if (navigator.geolocation) {
-  navigator.geolocation.watchPosition(
-    gpsSuccess,
-    gpsError,
-    { enableHighAccuracy: true }
-  );
-} else {
-  status.innerText = "GPS no soportado";
+async function searchAddress() {
+  if (!userLocation) return;
+
+  const text = document.getElementById("address").value;
+
+  const geo = await fetch(
+    `https://api.maptiler.com/geocoding/${encodeURIComponent(text)}.json?key=${maptilersdk.config.apiKey}`
+  ).then(r => r.json());
+
+  if (!geo.features.length) return;
+
+  const dest = geo.features[0].center;
+
+  new maptilersdk.Marker({ color: "white" })
+    .setLngLat(dest)
+    .addTo(map);
+
+  drawRoute(userLocation, dest);
+}
+
+async function drawRoute(start, end) {
+
+  const url = `https://api.maptiler.com/routing/v1/driving/${start.join(',')};${end.join(',')}?key=${maptilersdk.config.apiKey}`;
+  const data = await fetch(url).then(r => r.json());
+
+  const route = data.routes[0].geometry;
+
+  if (map.getSource("route")) {
+    map.removeLayer("route");
+    map.removeSource("route");
+  }
+
+  map.addSource("route", {
+    type: "geojson",
+    data: { type: "Feature", geometry: route }
+  });
+
+  map.addLayer({
+    id: "route",
+    type: "line",
+    source: "route",
+    paint: {
+      "line-color": "#ffffff",
+      "line-width": 5
+    }
+  });
 }
 </script>
 
