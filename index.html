@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>HUD Mapa Pro - Margen Delgado</title>
+    <title>HUD Mapa Pro - GPS Alta Precisión</title>
 
     <script src='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js'></script>
     <link href='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css' rel='stylesheet' />
@@ -20,9 +20,9 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Arial, sans-serif;
             overflow: hidden;
-            touch-action: none;
+            touch-action: none; /* Evita zoom accidental del navegador */
         }
 
         #wrapper {
@@ -38,11 +38,11 @@
             width: 100%;
             height: 100%;
             border-radius: 50%;
-            /* MARGEN REDUCIDO: Ahora es mucho más fino */
+            /* Margen delgado y elegante */
             border: calc(var(--hud-size) * 0.015) solid black; 
             overflow: hidden;
             background: #38692d; 
-            box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             z-index: 1;
             box-sizing: border-box;
         }
@@ -54,18 +54,21 @@
             z-index: 1;
         }
 
+        /* FLECHA DEL JUGADOR */
         #player {
             position: absolute;
             top: 50%;
             left: 50%;
             width: 7%; 
             height: auto;
+            /* La flecha siempre apunta arriba (al frente del HUD) */
             transform: translate(-50%, -50%) rotate(180deg); 
             z-index: 10;
             pointer-events: none;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
         }
 
+        /* CONTENEDOR DE LA N (ORBITA) */
         #north-orbit {
             position: absolute;
             top: 0;
@@ -77,6 +80,7 @@
             transition: transform 0.1s linear;
         }
 
+        /* ETIQUETA DE LA N */
         #north {
             position: absolute;
             top: 0;
@@ -89,11 +93,10 @@
             padding: 1.5% 3.5%; 
             border-radius: 100px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            border: none;
             white-space: nowrap;
         }
 
-        /* Ajuste para que el borde no se vea gigante en PC */
+        /* Ajustes para pantallas grandes (PC) */
         @media (min-width: 650px) {
             #hud { border-width: 6px; }
             #north { font-size: 22px; padding: 6px 14px; }
@@ -101,7 +104,7 @@
     </style>
 </head>
 
-<body onclick="requestCompassPermission()">
+<body onclick="requestPermissions()">
 
 <div id="wrapper">
     <div id="hud">
@@ -119,6 +122,7 @@
 </div>
 
 <script>
+    // Paleta de colores personalizada (Estilo GTA/Mapas de juego)
     const paleta = {
         agua: '#7088b0',
         tierra_general: '#38692d',
@@ -129,17 +133,19 @@
         senderos_marron: '#A78C6A'
     };
 
+    // Inicialización del Mapa
     const map = new maplibregl.Map({
         container: 'map',
         style: 'https://tiles.openfreemap.org/styles/bright', 
-        center: [-70.6483, -33.4569], 
-        zoom: 17.5, 
+        center: [-70.6483, -33.4569], // Santiago por defecto
+        zoom: 18, 
         pitch: 0,
         bearing: 0,
         attributionControl: false,
         interactive: false 
     });
 
+    // Aplicar estilos personalizados al cargar
     map.on('style.load', () => {
         map.setPaintProperty('background', 'background-color', paleta.tierra_general);
         if (map.getLayer('building')) {
@@ -164,22 +170,52 @@
         });
     });
 
-    if (navigator.geolocation) {
-        navigator.geolocation.watchPosition(pos => {
-            const { latitude: lat, longitude: lng } = pos.coords;
-            map.easeTo({ center: [lng, lat], duration: 800 });
-        }, null, { enableHighAccuracy: true });
+    // --- GEOLOCALIZACIÓN (GPS) ---
+    const geoOptions = {
+        enableHighAccuracy: true, // FUERZA GPS SATELITAL
+        timeout: 15000,           // 15 seg de espera
+        maximumAge: 0             // No usar datos viejos cacheado
+    };
+
+    function startTracking() {
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(pos => {
+                const { latitude: lat, longitude: lng, speed } = pos.coords;
+                
+                // Cálculo de Zoom Dinámico
+                const speedKmh = speed ? speed * 3.6 : 0;
+                let dynamicZoom = 18 - (speedKmh / 25);
+                if (dynamicZoom < 15.5) dynamicZoom = 15.5;
+                if (dynamicZoom > 18) dynamicZoom = 18;
+
+                // Mover el mapa a tu posición actual
+                map.easeTo({ 
+                    center: [lng, lat], 
+                    zoom: dynamicZoom,
+                    duration: 1200 
+                });
+                
+            }, err => console.error("Error GPS:", err), geoOptions);
+        }
     }
 
+    // --- BRÚJULA (ORIENTACIÓN) ---
     function handleOrientation(event) {
         let heading = event.webkitCompassHeading || (360 - event.alpha);
         if (heading !== undefined) {
+            // El mapa rota según tu mirada
             map.setBearing(heading);
+            // La N compensa la rotación para apuntar al norte real
             document.getElementById('north-orbit').style.transform = `rotate(${-heading}deg)`;
         }
     }
 
-    function requestCompassPermission() {
+    // Activar todo con un click (Requerido por navegadores)
+    function requestPermissions() {
+        // 1. Iniciar GPS
+        startTracking();
+
+        // 2. Iniciar Brújula (Con permiso para iOS si es necesario)
         if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
             DeviceOrientationEvent.requestPermission()
                 .then(response => {
