@@ -56,6 +56,18 @@
             filter: drop-shadow(0 2px 3px rgba(0,0,0,0.4));
         }
 
+        /* CONTENEDOR DE LA N: Ocupa todo el HUD y rota sobre el centro */
+        #north-orbit {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 11;
+            pointer-events: none;
+            transition: transform 0.1s linear; /* Suaviza el movimiento */
+        }
+
         #north {
             position: absolute;
             top: -10px;
@@ -67,7 +79,6 @@
             font-size: 20px;
             padding: 6px 14px;
             border-radius: 20px;
-            z-index: 11;
         }
     </style>
 </head>
@@ -77,12 +88,16 @@
 <div id="wrapper">
     <div id="hud">
         <div id="map"></div>
+        
         <svg id="player" viewBox="0 0 34 50">
             <path d="M17 2 C9 2 3 10 3 18 C3 30 17 45 17 45 C17 45 31 30 31 18 C31 10 25 2 17 2 Z"
                   fill="white" stroke="black" stroke-width="4"/>
         </svg>
+
+        <div id="north-orbit">
+            <div id="north">N</div>
+        </div>
     </div>
-    <div id="north">N</div>
 </div>
 
 <script>
@@ -104,8 +119,9 @@
         center: [-70.6483, -33.4569], 
         zoom: 17.5, 
         pitch: 0,
-        bearing: 0, // Inicia apuntando al norte
-        attributionControl: false
+        bearing: 0,
+        attributionControl: false,
+        interactive: false // Recomendado para que no interfiera con la brújula
     });
 
     map.on('style.load', () => {
@@ -114,7 +130,7 @@
             map.setPaintProperty('building', 'fill-color', paleta.edificios);
             map.setPaintProperty('building', 'fill-outline-color', '#000000');
         }
-        // Aplicar paleta a las demás capas...
+        
         map.getStyle().layers.forEach(layer => {
             if (map.getLayer('water')) map.setPaintProperty('water', 'fill-color', paleta.agua);
             if (map.getLayer('park')) map.setPaintProperty('park', 'fill-color', paleta.parques);
@@ -132,27 +148,27 @@
         });
     });
 
-    // GEOLOCALIZACIÓN (Posición)
     if (navigator.geolocation) {
         navigator.geolocation.watchPosition(pos => {
             const { latitude: lat, longitude: lng } = pos.coords;
-            map.jumpTo({ center: [lng, lat] }); // jumpTo es más suave para GPS
+            map.easeTo({ center: [lng, lat], duration: 800 });
         }, null, { enableHighAccuracy: true });
     }
 
-    // ROTACIÓN (Brújula)
     function handleOrientation(event) {
         let heading = event.webkitCompassHeading || (360 - event.alpha);
-        if (heading) {
-            // Rotamos el mapa para que lo que esté "adelante" sea hacia donde mira el usuario
+        if (heading !== undefined) {
+            // 1. El mapa rota para mostrar lo que tienes adelante
             map.setBearing(heading);
-            // La etiqueta "N" del HUD debe rotar en sentido contrario para marcar siempre el norte real
-            document.getElementById('north').style.transform = `translateX(-50%) rotate(${-heading}deg)`;
+            
+            // 2. La N rota en sentido CONTRARIO para quedarse siempre en el Norte real
+            // Al rotar el contenedor 'north-orbit', la N se desplaza por el borde
+            document.getElementById('north-orbit').style.transform = `rotate(${-heading}deg)`;
         }
     }
 
     function requestCompassPermission() {
-        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
             DeviceOrientationEvent.requestPermission()
                 .then(response => {
                     if (response == 'granted') {
