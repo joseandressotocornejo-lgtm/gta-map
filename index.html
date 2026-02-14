@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>HUD Mapa Pro - Santiago</title>
+    <title>HUD Estilo GTA - Seguimiento Real</title>
 
     <script src='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js'></script>
     <link href='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css' rel='stylesheet' />
@@ -44,20 +44,22 @@
             z-index: 1;
         }
 
+        /* FLECHA: Siempre apunta hacia adelante (arriba del HUD) */
         #player {
             position: absolute;
             top: 50%;
             left: 50%;
             width: 22px; 
             height: 28px; 
+            /* Rotada 180 para que la punta mire hacia el 'Norte' del HUD */
             transform: translate(-50%, -50%) rotate(180deg); 
             z-index: 10;
             pointer-events: none;
             filter: drop-shadow(0 2px 3px rgba(0,0,0,0.4));
         }
 
-        /* NORTHE ESTILIZADO: Movimiento suave */
-        #north-container {
+        /* BRÚJULA: Contenedor que rota para mover la N */
+        #compass-ring {
             position: absolute;
             width: 100%;
             height: 100%;
@@ -65,7 +67,8 @@
             left: 0;
             z-index: 11;
             pointer-events: none;
-            transition: transform 0.3s ease-out; /* SUAVIZA EL MOVIMIENTO */
+            /* Suavizado para que la N no salte */
+            transition: transform 0.2s linear;
         }
 
         #north {
@@ -88,12 +91,13 @@
 <div id="wrapper">
     <div id="hud">
         <div id="map"></div>
+        
         <svg id="player" viewBox="0 0 34 50">
             <path d="M17 2 C9 2 3 10 3 18 C3 30 17 45 17 45 C17 45 31 30 31 18 C31 10 25 2 17 2 Z"
                   fill="white" stroke="black" stroke-width="4"/>
         </svg>
         
-        <div id="north-container">
+        <div id="compass-ring">
             <div id="north">N</div>
         </div>
     </div>
@@ -120,7 +124,7 @@
         pitch: 0,
         bearing: 0,
         attributionControl: false,
-        interactive: false // Evita que el usuario lo mueva con los dedos y rompa la brújula
+        interactive: false 
     });
 
     map.on('style.load', () => {
@@ -147,24 +151,27 @@
         });
     });
 
+    // POSICIÓN
     if (navigator.geolocation) {
         navigator.geolocation.watchPosition(pos => {
             const { latitude: lat, longitude: lng } = pos.coords;
-            map.easeTo({ center: [lng, lat], duration: 1000 }); // Desplazamiento suave
+            map.easeTo({ center: [lng, lat], duration: 800 });
         }, null, { enableHighAccuracy: true });
     }
 
+    // BRÚJULA Y ROTACIÓN
     function handleOrientation(event) {
-        // Obtenemos el ángulo (soporta iOS y Android)
+        // Obtenemos hacia dónde mira el teléfono
         let heading = event.webkitCompassHeading || (360 - event.alpha);
         
         if (heading !== undefined) {
-            // Rotamos el mapa suavemente
-            map.easeTo({ bearing: heading, duration: 100, easing: (t) => t });
+            // 1. Rotamos el MAPA: Para que el frente del mapa coincida con tu frente
+            // Usamos un bearing invertido para que la cámara siga tu orientación
+            map.setBearing(heading);
             
-            // La N debe rotar en sentido opuesto para quedarse fija en el Norte real
-            // Usamos -heading porque el mapa gira, y queremos contrarrestar eso
-            document.getElementById('north-container').style.transform = `rotate(${-heading}deg)`;
+            // 2. Rotamos la N: Debe contrarrestar la rotación del mapa para marcar el norte real
+            // Como el mapa gira hacia 'heading', la N debe girar '-heading' para quedarse en el sitio
+            document.getElementById('compass-ring').style.transform = `rotate(${-heading}deg)`;
         }
     }
 
