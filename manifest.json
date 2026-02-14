@@ -1,0 +1,16 @@
+{
+  "short_name": "HUD Mapa",
+  "name": "HUD Mapa Pro - Santiago",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/854/854878.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#e5e5e5",
+  "theme_color": "#000000"
+}
