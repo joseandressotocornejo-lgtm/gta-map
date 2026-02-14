@@ -1,115 +1,150 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8">
-<title>HUD mapa correcto</title>
+    <meta charset="utf-8">
+    <title>HUD Mapa Estilo GTA - Santiago</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <script src='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js'></script>
+    <link href='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css' rel='stylesheet' />
 
-<style>
-body{
-  margin:0;
-  background:#e5e5e5;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-  font-family:Arial;
-}
+    <style>
+        body {
+            margin: 0;
+            background: #e5e5e5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial;
+        }
 
-/* contenedor general */
-#wrapper{
-  position:relative;
-  width:340px;
-  height:340px;
-}
+        #wrapper {
+            position: relative;
+            width: 340px;
+            height: 340px;
+        }
 
-/* HUD circular */
-#hud{
-  position:absolute;
-  width:100%;
-  height:100%;
-  border-radius:50%;
-  border:8px solid black;
-  overflow:hidden;
-  background:#f2f2f2;
-}
+        #hud {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 8px solid black;
+            overflow: hidden;
+            background: #38692d; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+        }
 
-/* mapa */
-#map{
-  position:absolute;
-  width:100%;
-  height:100%;
-  z-index:1;
-}
+        #map {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
 
-/* flecha jugador */
-#player{
-  position:absolute;
-  top:50%;
-  left:50%;
-  width:24px;
-  height:40px;
-  transform:translate(-50%,-50%) rotate(180deg);
-  z-index:2;
-  pointer-events:none;
-}
+        /* FLECHA: Forma original, pero altura reducida */
+        #player {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 22px; 
+            height: 28px; /* Altura ajustada para que no sea larga */
+            transform: translate(-50%, -50%) rotate(180deg); 
+            z-index: 10;
+            pointer-events: none;
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.4));
+        }
 
-/* norte */
-#north{
-  position:absolute;
-  top:-10px; /* ← ajustado */
-  left:50%;
-  transform:translateX(-50%);
-  background:black;
-  color:white;
-  font-weight:bold;
-  font-size:20px;
-  padding:6px 14px;
-  border-radius:20px;
-  z-index:3;
-}
-</style>
+        #north {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: black;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            z-index: 11;
+        }
+    </style>
 </head>
 
 <body>
 
 <div id="wrapper">
+    <div id="hud">
+        <div id="map"></div>
 
-  <div id="hud">
-    <div id="map"></div>
+        <svg id="player" viewBox="0 0 34 50">
+            <path d="M17 2 C9 2 3 10 3 18 C3 30 17 45 17 45 C17 45 31 30 31 18 C31 10 25 2 17 2 Z"
+                  fill="white" stroke="black" stroke-width="4"/>
+        </svg>
+    </div>
 
-    <svg id="player" viewBox="0 0 34 60">
-      <path d="M17 2 C9 2 3 10 3 18 C3 34 17 58 17 58 C17 58 31 34 31 18 C31 10 25 2 17 2 Z"
-        fill="white" stroke="black" stroke-width="5"/>
-    </svg>
-  </div>
-
-  <div id="north">N</div>
-
+    <div id="north">N</div>
 </div>
 
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
 <script>
-var map = L.map('map', {
-  zoomControl:false,
-  attributionControl:false
-}).setView([0,0], 18);
+    const paleta = {
+        agua: '#7088b0',
+        tierra_general: '#38692d',
+        tierra_natural: '#386c28',
+        urbano: '#989898',
+        parques: '#788c40',
+        edificios: '#FFFFFF',
+        calles_negras: '#000000',
+        senderos_marron: '#A78C6A',
+        texto_suave: '#E0E0E0'
+    };
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom:19
-}).addTo(map);
+    const map = new maplibregl.Map({
+        container: 'map',
+        style: 'https://tiles.openfreemap.org/styles/bright', 
+        center: [-70.6483, -33.4569], 
+        zoom: 17.5, 
+        pitch: 0, // Mapa plano
+        attributionControl: false
+    });
 
-navigator.geolocation.watchPosition(function(pos){
-  var lat = pos.coords.latitude;
-  var lon = pos.coords.longitude;
-  map.setView([lat,lon]);
-},
-function(){
-  alert("Activa el GPS");
-},
-{enableHighAccuracy:true});
+    map.on('style.load', () => {
+        map.setPaintProperty('background', 'background-color', paleta.tierra_general);
+        
+        if (map.getLayer('building')) {
+            map.setPaintProperty('building', 'fill-color', paleta.edificios);
+            map.setPaintProperty('building', 'fill-outline-color', '#000000');
+        }
+
+        map.getStyle().layers.forEach(layer => {
+            if (map.getLayer('water')) map.setPaintProperty('water', 'fill-color', paleta.agua);
+            if (map.getLayer('park')) map.setPaintProperty('park', 'fill-color', paleta.parques);
+
+            const esVia = layer.id.includes('highway') || layer.id.includes('bridge') || layer.id.includes('tunnel');
+            if (layer.type === 'line' && esVia) {
+                const esSendero = layer.id.includes('path') || layer.id.includes('footway') || layer.id.includes('track');
+                if (esSendero) {
+                    map.setPaintProperty(layer.id, 'line-color', paleta.senderos_marron);
+                    map.setPaintProperty(layer.id, 'line-width', 3);
+                } else {
+                    map.setPaintProperty(layer.id, 'line-color', paleta.calles_negras);
+                    map.setPaintProperty(layer.id, 'line-width', ['interpolate', ['linear'], ['zoom'], 14, 2, 18, 8]);
+                }
+            }
+            
+            if (layer.type === 'symbol' && layer.layout && layer.layout['text-field']) {
+                map.setPaintProperty(layer.id, 'text-color', paleta.texto_suave);
+                map.setPaintProperty(layer.id, 'text-halo-color', 'rgba(0,0,0,0.5)');
+            }
+        });
+    });
+
+    if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(pos => {
+            const { latitude: lat, longitude: lng } = pos.coords;
+            map.setCenter([lng, lat]);
+        }, null, { enableHighAccuracy: true });
+    }
 </script>
 
 </body>
