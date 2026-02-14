@@ -64,25 +64,25 @@
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 20; /* Por encima del borde del HUD */
+            z-index: 20;
             pointer-events: none;
             transition: transform 0.1s linear;
         }
 
-        /* LA N: Posicionada 50% afuera y 50% adentro */
+        /* LA N: Sin borde blanco y con contenedor más ajustado */
         #north {
             position: absolute;
-            top: 0; /* Ajustado para que el centro de la etiqueta coincida con el borde */
+            top: 0;
             left: 50%;
-            transform: translate(-50%, -50%); /* Centra la etiqueta sobre el borde superior */
+            transform: translate(-50%, -50%);
             background: black;
             color: white;
             font-weight: bold;
-            font-size: 20px;
-            padding: 6px 14px;
-            border-radius: 20px;
-            border: 2px solid white; /* Un borde fino para que resalte si toca colores oscuros */
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            font-size: 18px; /* Un pelín más pequeña para que sea armónica */
+            padding: 4px 10px; /* Padding más ajustado */
+            border-radius: 12px; /* Radio reducido para que sea más rectangular/ovalado justo */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            border: none; /* Sin borde blanco */
         }
     </style>
 </head>
@@ -163,7 +163,6 @@
         let heading = event.webkitCompassHeading || (360 - event.alpha);
         if (heading !== undefined) {
             map.setBearing(heading);
-            // Rotación suave de la N orbitando el margen
             document.getElementById('north-orbit').style.transform = `rotate(${-heading}deg)`;
         }
     }
