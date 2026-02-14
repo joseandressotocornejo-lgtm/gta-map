@@ -2,17 +2,33 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Mapa + HUD</title>
+<title>Mapa dentro del HUD</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
 <style>
 body{
   margin:0;
-  overflow:hidden;
+  background:#e5e5e5;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
   font-family:Arial;
 }
 
+/* HUD = contenedor circular */
+#hud{
+  position:relative;
+  width:340px;
+  height:340px;
+  border-radius:50%;
+  border:8px solid black;
+  overflow:hidden; /* 👈 recorte del mapa */
+  background:#f2f2f2;
+}
+
+/* mapa dentro del círculo */
 #map{
   position:absolute;
   width:100%;
@@ -20,21 +36,7 @@ body{
   z-index:1;
 }
 
-/* HUD flotante */
-#hud{
-  position:absolute;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  width:340px;
-  height:340px;
-  border-radius:50%;
-  border:8px solid black;
-  background:transparent;
-  pointer-events:none;
-  z-index:2;
-}
-
+/* flecha jugador */
 #player{
   position:absolute;
   top:50%;
@@ -42,8 +44,11 @@ body{
   width:24px;
   height:40px;
   transform:translate(-50%,-50%) rotate(180deg);
+  z-index:2;
+  pointer-events:none;
 }
 
+/* norte */
 #north{
   position:absolute;
   top:-22px;
@@ -55,29 +60,34 @@ body{
   font-size:20px;
   padding:6px 14px;
   border-radius:20px;
+  z-index:3;
 }
 </style>
 </head>
 
 <body>
 
-<div id="map"></div>
-
 <div id="hud">
+  <div id="map"></div>
+
   <svg id="player" viewBox="0 0 34 60">
     <path d="M17 2 C9 2 3 10 3 18 C3 34 17 58 17 58 C17 58 31 34 31 18 C31 10 25 2 17 2 Z"
       fill="white" stroke="black" stroke-width="5"/>
   </svg>
+
   <div id="north">N</div>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
-var map = L.map('map').setView([0,0], 18);
+var map = L.map('map', {
+  zoomControl:false,
+  attributionControl:false
+}).setView([0,0], 18);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19
+  maxZoom:19
 }).addTo(map);
 
 navigator.geolocation.watchPosition(function(pos){
@@ -86,7 +96,7 @@ navigator.geolocation.watchPosition(function(pos){
   map.setView([lat,lon]);
 },
 function(err){
-  alert("GPS no permitido o error");
+  alert("GPS no permitido");
 },
 {enableHighAccuracy:true});
 </script>
