@@ -1,264 +1,349 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8">
-<title>HUD Mapa Pro - GPS Alta Precisión</title>
+    <meta charset="utf-8">
+    <title>HUD Mapa Pro - GPS & Radio SA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
-<script src='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js'></script>
-<link href='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css' rel='stylesheet' />
+    <script src='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js'></script>
+    <link href='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css' rel='stylesheet' />
 
-<style>
-:root {
-    --hud-size: 85vw;
-    --max-size: 550px;
-}
+    <style>
+        :root {
+            --hud-size: 85vw;
+            --max-size: 550px;
+            --gta-yellow: #f9ca24;
+        }
 
-body {
-    margin: 0;
-    background: #e5e5e5;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    font-family: 'Segoe UI', Arial, sans-serif;
-    overflow: visible;
-    padding-top: 40px;
-    box-sizing: border-box;
-}
+        body {
+            margin: 0;
+            background: #e5e5e5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            overflow: hidden;
+            box-sizing: border-box;
+            touch-action: none;
+        }
 
-#wrapper {
-    position: relative;
-    width: var(--hud-size);
-    height: var(--hud-size);
-    max-width: var(--max-size);
-    max-height: var(--max-size);
-}
+        #wrapper {
+            position: relative;
+            width: var(--hud-size);
+            height: var(--hud-size);
+            max-width: var(--max-size);
+            max-height: var(--max-size);
+        }
 
-#hud {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    border: calc(var(--hud-size) * 0.015) solid black;
-    overflow: hidden;
-    background: #38692d;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    z-index: 1;
-    box-sizing: border-box;
-}
+        #hud {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: calc(var(--hud-size) * 0.015) solid black;
+            overflow: hidden;
+            background: #38692d;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 1;
+            box-sizing: border-box;
+        }
 
-#map {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    z-index: 1;
-}
+        #map {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
 
-#player {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 7%;
-    transform: translate(-50%, -50%) rotate(180deg);
-    z-index: 10;
-    pointer-events: none;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
-}
+        /* INTERFAZ DE RADIO MEJORADA */
+        #radio-ui {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0.7);
+            width: 100%; height: 100%;
+            background: radial-gradient(circle, rgba(0,0,0,0.96) 20%, rgba(0,0,0,0.7) 80%);
+            border-radius: 50%;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            border: 4px solid var(--gta-yellow);
+            box-sizing: border-box;
+        }
 
-#north-orbit {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 20;
-    pointer-events: none;
-    transition: transform 0.1s linear;
-}
+        #radio-ui.active {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
 
-#north {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: black;
-    color: white;
-    font-weight: bold;
-    font-size: calc(var(--hud-size) * 0.05);
-    padding: 1.5% 3.5%;
-    border-radius: 100px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    white-space: nowrap;
-}
+        #station-logo {
+            width: 140px; height: 140px;
+            object-fit: contain;
+        }
 
-@media (min-width: 650px) {
-    #hud { border-width: 6px; }
-    #north { font-size: 22px; padding: 6px 14px; }
-}
-</style>
+        #station-name {
+            color: var(--gta-yellow);
+            font-size: 1.4rem;
+            text-transform: uppercase;
+            font-family: 'Arial Black', sans-serif;
+            margin-top: 15px;
+            text-shadow: 2px 2px 0px black;
+            text-align: center;
+        }
+
+        #noise {
+            position: absolute;
+            width: 100%; height: 100%;
+            background: url('https://media.giphy.com/media/oEI9uWUicGLeE/giphy.gif');
+            opacity: 0;
+            border-radius: 50%;
+            mix-blend-mode: screen;
+            pointer-events: none;
+        }
+        .changing #noise { opacity: 0.25; }
+
+        #player {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 7%;
+            transform: translate(-50%, -50%) rotate(180deg);
+            z-index: 10;
+            pointer-events: none;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+        }
+
+        #north-orbit {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 20;
+            pointer-events: none;
+            transition: transform 0.1s linear;
+        }
+
+        #north {
+            position: absolute;
+            top: 0; left: 50%;
+            transform: translate(-50%, -50%);
+            background: black;
+            color: white;
+            font-weight: bold;
+            font-size: calc(var(--hud-size) * 0.05);
+            padding: 1.5% 3.5%;
+            border-radius: 100px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            white-space: nowrap;
+        }
+
+        @media (min-width: 650px) {
+            #hud { border-width: 6px; }
+            #north { font-size: 22px; padding: 6px 14px; }
+        }
+    </style>
 </head>
 
-<body onclick="requestPermissions()">
+<body>
 
 <div id="wrapper">
-<div id="hud">
-<div id="map"></div>
+    <div id="hud">
+        <div id="map"></div>
+        <svg id="player" viewBox="0 0 34 50">
+            <path d="M17 2 C9 2 3 10 3 18 C3 30 17 45 17 45 C17 45 31 30 31 18 C31 10 25 2 17 2 Z"
+            fill="white" stroke="black" stroke-width="4"/>
+        </svg>
 
-<svg id="player" viewBox="0 0 34 50">
-<path d="M17 2 C9 2 3 10 3 18 C3 30 17 45 17 45 C17 45 31 30 31 18 C31 10 25 2 17 2 Z"
-fill="white" stroke="black" stroke-width="4"/>
-</svg>
+        <div id="radio-ui" id="radioHUD">
+            <div id="noise"></div>
+            <img id="station-logo" src="https://i.imgur.com/vHqLhG2.png" alt="radio">
+            <div id="station-name">RADIO OFF</div>
+        </div>
+    </div>
+
+    <div id="north-orbit">
+        <div id="north">N</div>
+    </div>
 </div>
 
-<div id="north-orbit">
-<div id="north">N</div>
-</div>
-</div>
+<audio id="radio-audio" crossorigin="anonymous"></audio>
+<audio id="static-sfx" src="https://www.soundjay.com/tv-and-radio/static-radio-01.mp3"></audio>
 
 <script>
 const paleta = {
-agua: '#7088b0',
-tierra_general: '#38692d',
-urbano: '#989898',
-parques: '#788c40',
-edificios: '#FFFFFF',
-calles_negras: '#000000',
-senderos_marron: '#A78C6A'
+    agua: '#7088b0',
+    tierra_general: '#38692d',
+    urbano: '#989898',
+    parques: '#788c40',
+    edificios: '#FFFFFF',
+    calles_negras: '#000000',
+    senderos_marron: '#A78C6A'
 };
 
 const map = new maplibregl.Map({
-container: 'map',
-style: 'https://tiles.openfreemap.org/styles/bright',
-center: [-70.6483, -33.4569],
-zoom: 18,
-pitch: 0,
-bearing: 0,
-attributionControl: false,
-interactive: false
+    container: 'map',
+    style: 'https://tiles.openfreemap.org/styles/bright',
+    center: [-70.6483, -33.4569],
+    zoom: 18,
+    pitch: 0,
+    bearing: 0,
+    attributionControl: false,
+    interactive: false
 });
 
 map.on('style.load', () => {
-map.setPaintProperty('background', 'background-color', paleta.tierra_general);
-
-if (map.getLayer('building')) {
-map.setPaintProperty('building', 'fill-color', paleta.edificios);
-map.setPaintProperty('building', 'fill-outline-color', '#000000');
-}
-
-map.getStyle().layers.forEach(layer => {
-if (map.getLayer('water'))
-map.setPaintProperty('water', 'fill-color', paleta.agua);
-
-if (map.getLayer('park'))
-map.setPaintProperty('park', 'fill-color', paleta.parques);
-
-const esVia = layer.id.includes('highway') ||
-layer.id.includes('bridge') ||
-layer.id.includes('tunnel');
-
-if (layer.type === 'line' && esVia) {
-const esSendero = layer.id.includes('path') ||
-layer.id.includes('footway') ||
-layer.id.includes('track');
-
-if (esSendero) {
-map.setPaintProperty(layer.id, 'line-color', paleta.senderos_marron);
-map.setPaintProperty(layer.id, 'line-width', 3);
-} else {
-map.setPaintProperty(layer.id, 'line-color', paleta.calles_negras);
-map.setPaintProperty(layer.id, 'line-width',
-['interpolate', ['linear'], ['zoom'], 14, 2, 18, 10]);
-}
-}
-});
+    map.setPaintProperty('background', 'background-color', paleta.tierra_general);
+    if (map.getLayer('building')) {
+        map.setPaintProperty('building', 'fill-color', paleta.edificios);
+        map.setPaintProperty('building', 'fill-outline-color', '#000000');
+    }
+    map.getStyle().layers.forEach(layer => {
+        if (map.getLayer('water')) map.setPaintProperty('water', 'fill-color', paleta.agua);
+        if (map.getLayer('park')) map.setPaintProperty('park', 'fill-color', paleta.parques);
+        const esVia = layer.id.includes('highway') || layer.id.includes('bridge') || layer.id.includes('tunnel');
+        if (layer.type === 'line' && esVia) {
+            const esSendero = layer.id.includes('path') || layer.id.includes('footway') || layer.id.includes('track');
+            if (esSendero) {
+                map.setPaintProperty(layer.id, 'line-color', paleta.senderos_marron);
+                map.setPaintProperty(layer.id, 'line-width', 3);
+            } else {
+                map.setPaintProperty(layer.id, 'line-color', paleta.calles_negras);
+                map.setPaintProperty(layer.id, 'line-width', ['interpolate', ['linear'], ['zoom'], 14, 2, 18, 10]);
+            }
+        }
+    });
 });
 
-/* GPS SUAVIZADO */
-const geoOptions = {
-enableHighAccuracy: true,
-timeout: 15000,
-maximumAge: 0
+const logoPath = "https://raw.githubusercontent.com/bedro0/RadioSanAndreas/main/Logos/";
+const stations = [
+    { name: "Radio Off", logo: "https://i.imgur.com/vHqLhG2.png", stream: "" },
+    { name: "Bounce FM", logo: logoPath + "bounce_fm.png", stream: "https://audio.gtaradio.net/sa/bounce-fm" },
+    { name: "CSR 103.9", logo: logoPath + "csr.png", stream: "https://audio.gtaradio.net/sa/csr" },
+    { name: "K-DST", logo: logoPath + "k-dst.png", stream: "https://audio.gtaradio.net/sa/k-dst" },
+    { name: "K-JAH West", logo: logoPath + "k-jah_west.png", stream: "https://audio.gtaradio.net/sa/k-jah" },
+    { name: "K-Rose", logo: logoPath + "k-rose.png", stream: "https://audio.gtaradio.net/sa/k-rose" },
+    { name: "Master Sounds", logo: logoPath + "master_sounds.png", stream: "https://audio.gtaradio.net/sa/master-sounds" },
+    { name: "Playback FM", logo: logoPath + "playback_fm.png", stream: "https://audio.gtaradio.net/sa/playback-fm" },
+    { name: "Radio Los Santos", logo: logoPath + "radio_los_santos.png", stream: "https://audio.gtaradio.net/sa/radio-los-santos" },
+    { name: "Radio X", logo: logoPath + "radio_x.png", stream: "https://audio.gtaradio.net/sa/radio-x" },
+    { name: "SF-UR", logo: logoPath + "sf-ur.png", stream: "https://audio.gtaradio.net/sa/sfur" },
+    { name: "WCTR", logo: logoPath + "wctr.png", stream: "https://audio.gtaradio.net/sa/wctr" }
+];
+
+let currentIdx = 0;
+let isHolding = false;
+let holdTimer;
+let hideTimeout; // Para cerrar el menú rápido
+const radioUi = document.getElementById('radio-ui');
+const audio = document.getElementById('radio-audio');
+const staticSfx = document.getElementById('static-sfx');
+
+function updateRadioUI() {
+    const s = stations[currentIdx];
+    document.getElementById('station-logo').src = s.logo;
+    document.getElementById('station-name').innerText = s.name;
+}
+
+function changeStation(dir) {
+    currentIdx = (currentIdx + dir + stations.length) % stations.length;
+    document.body.classList.add('changing');
+    staticSfx.currentTime = 0;
+    staticSfx.play();
+    
+    setTimeout(() => {
+        updateRadioUI();
+        const s = stations[currentIdx];
+        if (s.stream) {
+            audio.src = s.stream;
+            audio.play().catch(e => console.log("Audio block"));
+        } else {
+            audio.pause();
+            audio.src = "";
+        }
+        document.body.classList.remove('changing');
+    }, 300);
+}
+
+/* LÓGICA DE VISIBILIDAD MEJORADA */
+const handleStart = () => {
+    clearTimeout(hideTimeout);
+    isHolding = false;
+    holdTimer = setTimeout(() => {
+        isHolding = true;
+        radioUi.classList.add('active');
+        updateRadioUI();
+    }, 350);
 };
 
-let smoothLat = null;
-let smoothLng = null;
+const handleEnd = () => {
+    clearTimeout(holdTimer);
+    if (!isHolding) {
+        // TOQUE CORTO
+        changeStation(1);
+        radioUi.classList.add('active');
+        updateRadioUI();
+        // CERRAR RÁPIDO (800ms)
+        hideTimeout = setTimeout(() => { radioUi.classList.remove('active'); }, 800);
+    } else {
+        // SOLTAR DESPUÉS DE MANTENER
+        radioUi.classList.remove('active');
+        isHolding = false;
+    }
+};
+
+window.addEventListener('mousedown', handleStart);
+window.addEventListener('mouseup', handleEnd);
+window.addEventListener('touchstart', handleStart);
+window.addEventListener('touchend', handleEnd);
+
+/* GPS & BRÚJULA SUAVIZADOS */
+const geoOptions = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
+let smoothLat = null, smoothLng = null;
 const smoothing = 0.18;
 
 function smoothGPS(lat, lng) {
-if (smoothLat === null) {
-smoothLat = lat;
-smoothLng = lng;
-} else {
-smoothLat = smoothLat * (1 - smoothing) + lat * smoothing;
-smoothLng = smoothLng * (1 - smoothing) + lng * smoothing;
-}
-return [smoothLat, smoothLng];
+    if (smoothLat === null) { smoothLat = lat; smoothLng = lng; } 
+    else {
+        smoothLat = smoothLat * (1 - smoothing) + lat * smoothing;
+        smoothLng = smoothLng * (1 - smoothing) + lng * smoothing;
+    }
+    return [smoothLat, smoothLng];
 }
 
 function startTracking() {
-navigator.geolocation.watchPosition(pos => {
-
-const rawLat = pos.coords.latitude;
-const rawLng = pos.coords.longitude;
-const speed = pos.coords.speed;
-
-const [lat, lng] = smoothGPS(rawLat, rawLng);
-
-const speedKmh = speed ? speed * 3.6 : 0;
-let dynamicZoom = 18 - (speedKmh / 25);
-
-if (dynamicZoom < 15.5) dynamicZoom = 15.5;
-if (dynamicZoom > 18) dynamicZoom = 18;
-
-map.easeTo({
-center: [lng, lat],
-zoom: dynamicZoom,
-duration: 900
-});
-
-}, err => console.error("Error GPS:", err), geoOptions);
+    navigator.geolocation.watchPosition(pos => {
+        const [lat, lng] = smoothGPS(pos.coords.latitude, pos.coords.longitude);
+        const speedKmh = pos.coords.speed ? pos.coords.speed * 3.6 : 0;
+        let dynamicZoom = Math.max(15.5, Math.min(18, 18 - (speedKmh / 25)));
+        map.easeTo({ center: [lng, lat], zoom: dynamicZoom, duration: 900 });
+    }, null, geoOptions);
 }
 
-/* Brújula CORREGIDA */
 let smoothHeading = 0;
 const headingSmooth = 0.15;
 
 function handleOrientation(event) {
-let rawHeading;
-
-if (event.webkitCompassHeading !== undefined) {
-rawHeading = event.webkitCompassHeading;
-} else if (event.alpha !== null) {
-rawHeading = 360 - event.alpha;
-}
-
-if (rawHeading === undefined) return;
-
-smoothHeading =
-smoothHeading * (1 - headingSmooth) +
-rawHeading * headingSmooth;
-
-map.setBearing(smoothHeading);
-document.getElementById('north-orbit').style.transform =
-`rotate(${-smoothHeading}deg)`;
+    let rawHeading = event.webkitCompassHeading || (event.alpha ? 360 - event.alpha : 0);
+    smoothHeading = smoothHeading * (1 - headingSmooth) + rawHeading * headingSmooth;
+    map.setBearing(smoothHeading);
+    document.getElementById('north-orbit').style.transform = `rotate(${-smoothHeading}deg)`;
 }
 
 function requestPermissions() {
-startTracking();
+    startTracking();
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission().then(res => {
+            if (res === 'granted') window.addEventListener('deviceorientation', handleOrientation);
+        });
+    } else {
+        window.addEventListener('deviceorientation', handleOrientation);
+    }
+}
 
-if (typeof DeviceOrientationEvent !== 'undefined' &&
-typeof DeviceOrientationEvent.requestPermission === 'function') {
-DeviceOrientationEvent.requestPermission()
-.then(response => {
-if (response === 'granted') {
-window.addEventListener('deviceorientation', handleOrientation);
-}
-})
-.catch(console.error);
-} else {
-window.addEventListener('deviceorientation', handleOrientation);
-}
-}
+document.body.addEventListener('click', requestPermissions, {once: true});
 </script>
 
 </body>
