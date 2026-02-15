@@ -56,6 +56,7 @@
             z-index: 1;
         }
 
+        /* --- ESTILOS DEL SELECTOR RADIAL --- */
         #radio-ui {
             position: absolute;
             top: 50%; left: 50%;
@@ -70,7 +71,7 @@
             align-items: center;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.2s ease, transform 0.2s ease;
+            transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             border: 4px solid var(--gta-yellow);
             box-sizing: border-box;
         }
@@ -80,19 +81,35 @@
             transform: translate(-50%, -50%) scale(1);
         }
 
+        .station-icon-radial {
+            position: absolute;
+            width: 45px; height: 45px;
+            transform: translate(-50%, -50%);
+            transition: transform 0.2s, filter 0.2s;
+            filter: grayscale(1) opacity(0.4);
+            z-index: 101;
+        }
+
+        .station-icon-radial.highlight {
+            filter: grayscale(0) opacity(1);
+            transform: translate(-50%, -50%) scale(1.4);
+        }
+
         #station-logo {
-            width: 140px; height: 140px;
+            width: 120px; height: 120px;
             object-fit: contain;
+            transition: transform 0.2s;
         }
 
         #station-name {
             color: var(--gta-yellow);
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             text-transform: uppercase;
             font-family: 'Arial Black', sans-serif;
-            margin-top: 15px;
+            margin-top: 10px;
             text-shadow: 2px 2px 0px black;
             text-align: center;
+            max-width: 80%;
         }
 
         #noise {
@@ -174,46 +191,20 @@
 
 <script>
 // --- CONFIGURACIÓN DE MAPA ---
-const paleta = {
-    agua: '#7088b0',
-    tierra_general: '#38692d',
-    urbano: '#989898',
-    parques: '#788c40',
-    edificios: '#FFFFFF',
-    calles_negras: '#000000',
-    senderos_marron: '#A78C6A'
-};
-
-const map = new maplibregl.Map({
-    container: 'map',
-    style: 'https://tiles.openfreemap.org/styles/bright',
-    center: [-70.6483, -33.4569],
-    zoom: 18,
-    pitch: 0,
-    bearing: 0,
-    attributionControl: false,
-    interactive: false
-});
+const paleta = { agua: '#7088b0', tierra_general: '#38692d', urbano: '#989898', parques: '#788c40', edificios: '#FFFFFF', calles_negras: '#000000', senderos_marron: '#A78C6A' };
+const map = new maplibregl.Map({ container: 'map', style: 'https://tiles.openfreemap.org/styles/bright', center: [-70.6483, -33.4569], zoom: 18, pitch: 0, bearing: 0, attributionControl: false, interactive: false });
 
 map.on('style.load', () => {
     map.setPaintProperty('background', 'background-color', paleta.tierra_general);
-    if (map.getLayer('building')) {
-        map.setPaintProperty('building', 'fill-color', paleta.edificios);
-        map.setPaintProperty('building', 'fill-outline-color', '#000000');
-    }
+    if (map.getLayer('building')) { map.setPaintProperty('building', 'fill-color', paleta.edificios); map.setPaintProperty('building', 'fill-outline-color', '#000000'); }
     map.getStyle().layers.forEach(layer => {
         if (map.getLayer('water')) map.setPaintProperty('water', 'fill-color', paleta.agua);
         if (map.getLayer('park')) map.setPaintProperty('park', 'fill-color', paleta.parques);
         const esVia = layer.id.includes('highway') || layer.id.includes('bridge') || layer.id.includes('tunnel');
         if (layer.type === 'line' && esVia) {
             const esSendero = layer.id.includes('path') || layer.id.includes('footway') || layer.id.includes('track');
-            if (esSendero) {
-                map.setPaintProperty(layer.id, 'line-color', paleta.senderos_marron);
-                map.setPaintProperty(layer.id, 'line-width', 3);
-            } else {
-                map.setPaintProperty(layer.id, 'line-color', paleta.calles_negras);
-                map.setPaintProperty(layer.id, 'line-width', ['interpolate', ['linear'], ['zoom'], 14, 2, 18, 10]);
-            }
+            if (esSendero) { map.setPaintProperty(layer.id, 'line-color', paleta.senderos_marron); map.setPaintProperty(layer.id, 'line-width', 3); }
+            else { map.setPaintProperty(layer.id, 'line-color', paleta.calles_negras); map.setPaintProperty(layer.id, 'line-width', ['interpolate', ['linear'], ['zoom'], 14, 2, 18, 10]); }
         }
     });
 });
@@ -236,132 +227,132 @@ const stations = [
 ];
 
 let currentIdx = 0;
+let tempIdx = 0;
 let isHolding = false;
 let holdTimer;
+let lastClickTime = 0;
 let hideTimeout;
+
 const radioUi = document.getElementById('radio-ui');
 const audio = document.getElementById('radio-audio');
 const staticSfx = document.getElementById('static-sfx');
 const menuSfx = document.getElementById('menu-sfx');
 
-function updateRadioUI() {
+// Crear iconos radiales
+stations.forEach((s, i) => {
+    const angle = (i / stations.length) * Math.PI * 2 - Math.PI / 2;
+    const x = 50 + Math.cos(angle) * 38;
+    const y = 50 + Math.sin(angle) * 38;
+    const icon = document.createElement('img');
+    icon.src = s.logo;
+    icon.className = 'station-icon-radial';
+    icon.id = `rad-${i}`;
+    icon.style.left = `${x}%`;
+    icon.style.top = `${y}%`;
+    radioUi.appendChild(icon);
+});
+
+function applyStation(idx) {
+    currentIdx = idx;
     const s = stations[currentIdx];
-    document.getElementById('station-logo').src = s.logo;
-    document.getElementById('station-name').innerText = s.name;
+    if (s.stream) {
+        audio.src = s.stream;
+        audio.play().catch(e => console.log("Bloqueado"));
+    } else {
+        audio.pause();
+        audio.src = "";
+    }
 }
 
-function changeStation(dir) {
-    currentIdx = (currentIdx + dir + stations.length) % stations.length;
-    document.body.classList.add('changing');
+function updateSelection(idx) {
+    tempIdx = idx;
+    document.getElementById('station-logo').src = stations[idx].logo;
+    document.getElementById('station-name').innerText = stations[idx].name;
+    document.querySelectorAll('.station-icon-radial').forEach(el => el.classList.remove('highlight'));
+    document.getElementById(`rad-${idx}`).classList.add('highlight');
     staticSfx.currentTime = 0;
     staticSfx.play();
-    
-    setTimeout(() => {
-        updateRadioUI();
-        const s = stations[currentIdx];
-        if (s.stream) {
-            audio.src = s.stream;
-            audio.play().catch(e => console.log("Audio Bloqueado"));
-        } else {
-            audio.pause();
-            audio.src = "";
-        }
-        document.body.classList.remove('changing');
-    }, 300);
 }
 
-// --- PANTALLA SIEMPRE ENCENDIDA (WAKE LOCK) ---
-let wakeLock = null;
-const requestWakeLock = async () => {
-    try {
-        if ('wakeLock' in navigator) {
-            wakeLock = await navigator.wakeLock.request('screen');
-        }
-    } catch (err) { console.log("WakeLock error"); }
-};
+// --- LOGICA DE INTERACCION ---
 
-// --- EVENTOS DE INTERACCIÓN ---
-const handleStart = () => {
+const handleStart = (e) => {
+    e.preventDefault();
     clearTimeout(hideTimeout);
-    isHolding = false;
     
+    // Sonido al tocar
     menuSfx.currentTime = 0;
     menuSfx.play();
 
     holdTimer = setTimeout(() => {
         isHolding = true;
+        tempIdx = currentIdx;
         radioUi.classList.add('active');
-        updateRadioUI();
-    }, 350);
+        updateSelection(currentIdx);
+    }, 400);
+};
+
+const handleMove = (e) => {
+    if (!isHolding) return;
+    const touch = e.touches ? e.touches[0] : e;
+    const rect = radioUi.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const angle = Math.atan2(touch.clientY - centerY, touch.clientX - centerX);
+    let normalizedAngle = angle + Math.PI / 2;
+    if (normalizedAngle < 0) normalizedAngle += Math.PI * 2;
+
+    const index = Math.round((normalizedAngle / (Math.PI * 2)) * stations.length) % stations.length;
+    if (index !== tempIdx) updateSelection(index);
 };
 
 const handleEnd = () => {
     clearTimeout(holdTimer);
-    if (!isHolding) {
-        changeStation(1);
-        radioUi.classList.add('active');
-        updateRadioUI();
-        hideTimeout = setTimeout(() => { radioUi.classList.remove('active'); }, 800);
-    } else {
-        radioUi.classList.remove('active');
+    
+    if (isHolding) {
+        // Al soltar tras arrastrar
+        applyStation(tempIdx);
+        hideTimeout = setTimeout(() => radioUi.classList.remove('active'), 1200);
         isHolding = false;
+    } else {
+        // Lógica de Doble Toque
+        const now = Date.now();
+        if (now - lastClickTime < 300) {
+            let next = (currentIdx + 1) % stations.length;
+            radioUi.classList.add('active');
+            updateSelection(next);
+            applyStation(next);
+            hideTimeout = setTimeout(() => radioUi.classList.remove('active'), 1500);
+        }
+        lastClickTime = now;
     }
 };
 
-window.addEventListener('mousedown', handleStart);
-window.addEventListener('mouseup', handleEnd);
-window.addEventListener('touchstart', handleStart);
+window.addEventListener('touchstart', handleStart, {passive: false});
+window.addEventListener('touchmove', handleMove, {passive: false});
 window.addEventListener('touchend', handleEnd);
+window.addEventListener('mousedown', handleStart);
+window.addEventListener('mousemove', handleMove);
+window.addEventListener('mouseup', handleEnd);
 
-// --- GEOLOCALIZACIÓN Y BRÚJULA ---
-const geoOptions = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
-let smoothLat = null, smoothLng = null;
-const smoothing = 0.18;
-
-function smoothGPS(lat, lng) {
-    if (smoothLat === null) { smoothLat = lat; smoothLng = lng; } 
-    else {
-        smoothLat = smoothLat * (1 - smoothing) + lat * smoothing;
-        smoothLng = smoothLng * (1 - smoothing) + lng * smoothing;
-    }
-    return [smoothLat, smoothLng];
-}
-
-function startTracking() {
-    navigator.geolocation.watchPosition(pos => {
-        const [lat, lng] = smoothGPS(pos.coords.latitude, pos.coords.longitude);
-        const speedKmh = pos.coords.speed ? pos.coords.speed * 3.6 : 0;
-        let dynamicZoom = Math.max(15.5, Math.min(18, 18 - (speedKmh / 25)));
-        map.easeTo({ center: [lng, lat], zoom: dynamicZoom, duration: 900 });
-    }, null, geoOptions);
-}
-
-let smoothHeading = 0;
-const headingSmooth = 0.15;
-
-function handleOrientation(event) {
-    let rawHeading = event.webkitCompassHeading || (event.alpha ? 360 - event.alpha : 0);
-    smoothHeading = smoothHeading * (1 - headingSmooth) + rawHeading * headingSmooth;
-    map.setBearing(smoothHeading);
-    document.getElementById('north-orbit').style.transform = `rotate(${-smoothHeading}deg)`;
-}
-
+// --- GPS Y ORIENTACIÓN (Original) ---
 function requestPermissions() {
     startTracking();
-    requestWakeLock(); // Activar wake lock aquí
+    if ('wakeLock' in navigator) navigator.wakeLock.request('screen');
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission().then(res => {
-            if (res === 'granted') window.addEventListener('deviceorientation', handleOrientation);
-        });
-    } else {
-        window.addEventListener('deviceorientation', handleOrientation);
-    }
+        DeviceOrientationEvent.requestPermission().then(res => { if (res === 'granted') window.addEventListener('deviceorientation', handleOrientation); });
+    } else { window.addEventListener('deviceorientation', handleOrientation); }
 }
 
 document.body.addEventListener('click', requestPermissions, {once: true});
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') requestWakeLock();
-});
+
+const geoOptions = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
+let smoothLat = null, smoothLng = null;
+const smoothing = 0.18;
+function smoothGPS(lat, lng) { if (smoothLat === null) { smoothLat = lat; smoothLng = lng; } else { smoothLat = smoothLat * (1 - smoothing) + lat * smoothing; smoothLng = smoothLng * (1 - smoothing) + lng * smoothing; } return [smoothLat, smoothLng]; }
+function startTracking() { navigator.geolocation.watchPosition(pos => { const [lat, lng] = smoothGPS(pos.coords.latitude, pos.coords.longitude); map.easeTo({ center: [lng, lat], duration: 900 }); }, null, geoOptions); }
+function handleOrientation(event) { let rawHeading = event.webkitCompassHeading || (event.alpha ? 360 - event.alpha : 0); map.setBearing(rawHeading); document.getElementById('north-orbit').style.transform = `rotate(${-rawHeading}deg)`; }
 </script>
 
 </body>
