@@ -17,7 +17,7 @@
 
         body {
             margin: 0;
-            background: #e5e5e5;
+            background: #25471E; 
             display: flex;
             justify-content: center;
             align-items: center;
@@ -44,7 +44,7 @@
             border: calc(var(--hud-size) * 0.015) solid black;
             overflow: hidden;
             background: #38692d;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
             z-index: 1;
             box-sizing: border-box;
         }
@@ -56,7 +56,6 @@
             z-index: 1;
         }
 
-        /* INTERFAZ DE RADIO MEJORADA */
         #radio-ui {
             position: absolute;
             top: 50%; left: 50%;
@@ -157,9 +156,9 @@
             fill="white" stroke="black" stroke-width="4"/>
         </svg>
 
-        <div id="radio-ui" id="radioHUD">
+        <div id="radio-ui">
             <div id="noise"></div>
-            <img id="station-logo" src="https://i.imgur.com/vHqLhG2.png" alt="radio">
+            <img id="station-logo" src="img/RadioLosSantos.png" alt="radio">
             <div id="station-name">RADIO OFF</div>
         </div>
     </div>
@@ -217,26 +216,27 @@ map.on('style.load', () => {
     });
 });
 
-const logoPath = "https://raw.githubusercontent.com/bedro0/RadioSanAndreas/main/Logos/";
+// CONFIGURACIÓN DE RUTAS LOCALES
+const logoPath = "img/"; 
 const stations = [
-    { name: "Radio Off", logo: "https://i.imgur.com/vHqLhG2.png", stream: "" },
-    { name: "Bounce FM", logo: logoPath + "bounce_fm.png", stream: "https://audio.gtaradio.net/sa/bounce-fm" },
-    { name: "CSR 103.9", logo: logoPath + "csr.png", stream: "https://audio.gtaradio.net/sa/csr" },
-    { name: "K-DST", logo: logoPath + "k-dst.png", stream: "https://audio.gtaradio.net/sa/k-dst" },
-    { name: "K-JAH West", logo: logoPath + "k-jah_west.png", stream: "https://audio.gtaradio.net/sa/k-jah" },
-    { name: "K-Rose", logo: logoPath + "k-rose.png", stream: "https://audio.gtaradio.net/sa/k-rose" },
-    { name: "Master Sounds", logo: logoPath + "master_sounds.png", stream: "https://audio.gtaradio.net/sa/master-sounds" },
-    { name: "Playback FM", logo: logoPath + "playback_fm.png", stream: "https://audio.gtaradio.net/sa/playback-fm" },
-    { name: "Radio Los Santos", logo: logoPath + "radio_los_santos.png", stream: "https://audio.gtaradio.net/sa/radio-los-santos" },
-    { name: "Radio X", logo: logoPath + "radio_x.png", stream: "https://audio.gtaradio.net/sa/radio-x" },
-    { name: "SF-UR", logo: logoPath + "sf-ur.png", stream: "https://audio.gtaradio.net/sa/sfur" },
-    { name: "WCTR", logo: logoPath + "wctr.png", stream: "https://audio.gtaradio.net/sa/wctr" }
+    { name: "Radio Off", logo: logoPath + "RadioLosSantos.png", stream: "" }, // Usamos Los Santos de fondo para el "Off"
+    { name: "Bounce FM", logo: logoPath + "BounceFM.png", stream: "https://audio.gtaradio.net/sa/bounce-fm" },
+    { name: "CSR 103.9", logo: logoPath + "CSR1039.png", stream: "https://audio.gtaradio.net/sa/csr" },
+    { name: "K-DST", logo: logoPath + "K-DST.png", stream: "https://audio.gtaradio.net/sa/k-dst" },
+    { name: "K-JAH West", logo: logoPath + "KJAHWest.png", stream: "https://audio.gtaradio.net/sa/k-jah" },
+    { name: "K-Rose", logo: logoPath + "K-Rose.png", stream: "https://audio.gtaradio.net/sa/k-rose" },
+    { name: "Master Sounds", logo: logoPath + "MasterSounds983.png", stream: "https://audio.gtaradio.net/sa/master-sounds" },
+    { name: "Playback FM", logo: logoPath + "PlaybackFM.png", stream: "https://audio.gtaradio.net/sa/playback-fm" },
+    { name: "Radio Los Santos", logo: logoPath + "RadioLosSantos.png", stream: "https://audio.gtaradio.net/sa/radio-los-santos" },
+    { name: "Radio X", logo: logoPath + "RadioX.png", stream: "https://audio.gtaradio.net/sa/radio-x" },
+    { name: "SF-UR", logo: logoPath + "SFUR.png", stream: "https://audio.gtaradio.net/sa/sfur" },
+    { name: "WCTR", logo: logoPath + "WCTR.png", stream: "https://audio.gtaradio.net/sa/wctr" }
 ];
 
 let currentIdx = 0;
 let isHolding = false;
 let holdTimer;
-let hideTimeout; // Para cerrar el menú rápido
+let hideTimeout;
 const radioUi = document.getElementById('radio-ui');
 const audio = document.getElementById('radio-audio');
 const staticSfx = document.getElementById('static-sfx');
@@ -267,7 +267,6 @@ function changeStation(dir) {
     }, 300);
 }
 
-/* LÓGICA DE VISIBILIDAD MEJORADA */
 const handleStart = () => {
     clearTimeout(hideTimeout);
     isHolding = false;
@@ -281,14 +280,11 @@ const handleStart = () => {
 const handleEnd = () => {
     clearTimeout(holdTimer);
     if (!isHolding) {
-        // TOQUE CORTO
         changeStation(1);
         radioUi.classList.add('active');
         updateRadioUI();
-        // CERRAR RÁPIDO (800ms)
         hideTimeout = setTimeout(() => { radioUi.classList.remove('active'); }, 800);
     } else {
-        // SOLTAR DESPUÉS DE MANTENER
         radioUi.classList.remove('active');
         isHolding = false;
     }
@@ -299,7 +295,6 @@ window.addEventListener('mouseup', handleEnd);
 window.addEventListener('touchstart', handleStart);
 window.addEventListener('touchend', handleEnd);
 
-/* GPS & BRÚJULA SUAVIZADOS */
 const geoOptions = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
 let smoothLat = null, smoothLng = null;
 const smoothing = 0.18;
