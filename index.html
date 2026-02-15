@@ -158,7 +158,7 @@
 
         <div id="radio-ui">
             <div id="noise"></div>
-            <img id="station-logo" src="img/RadioLosSantos.png" alt="radio">
+            <img id="station-logo" src="img/RadioOff.png" alt="radio">
             <div id="station-name">RADIO OFF</div>
         </div>
     </div>
@@ -170,6 +170,7 @@
 
 <audio id="radio-audio" crossorigin="anonymous"></audio>
 <audio id="static-sfx" src="https://www.soundjay.com/tv-and-radio/static-radio-01.mp3"></audio>
+<audio id="menu-sfx" src="img/gta-sa-menu.mp3"></audio>
 
 <script>
 const paleta = {
@@ -219,7 +220,7 @@ map.on('style.load', () => {
 // CONFIGURACIÓN DE RUTAS LOCALES
 const logoPath = "img/"; 
 const stations = [
-    { name: "Radio Off", logo: logoPath + "RadioLosSantos.png", stream: "" }, // Usamos Los Santos de fondo para el "Off"
+    { name: "Radio Off", logo: logoPath + "RadioOff.png", stream: "" },
     { name: "Bounce FM", logo: logoPath + "BounceFM.png", stream: "https://audio.gtaradio.net/sa/bounce-fm" },
     { name: "CSR 103.9", logo: logoPath + "CSR1039.png", stream: "https://audio.gtaradio.net/sa/csr" },
     { name: "K-DST", logo: logoPath + "K-DST.png", stream: "https://audio.gtaradio.net/sa/k-dst" },
@@ -240,6 +241,7 @@ let hideTimeout;
 const radioUi = document.getElementById('radio-ui');
 const audio = document.getElementById('radio-audio');
 const staticSfx = document.getElementById('static-sfx');
+const menuSfx = document.getElementById('menu-sfx');
 
 function updateRadioUI() {
     const s = stations[currentIdx];
@@ -250,6 +252,8 @@ function updateRadioUI() {
 function changeStation(dir) {
     currentIdx = (currentIdx + dir + stations.length) % stations.length;
     document.body.classList.add('changing');
+    
+    // Sonido de estática
     staticSfx.currentTime = 0;
     staticSfx.play();
     
@@ -258,7 +262,7 @@ function changeStation(dir) {
         const s = stations[currentIdx];
         if (s.stream) {
             audio.src = s.stream;
-            audio.play().catch(e => console.log("Audio block"));
+            audio.play().catch(e => console.log("Audio bloqueado"));
         } else {
             audio.pause();
             audio.src = "";
@@ -270,6 +274,11 @@ function changeStation(dir) {
 const handleStart = () => {
     clearTimeout(hideTimeout);
     isHolding = false;
+    
+    // Sonido de Menú al presionar
+    menuSfx.currentTime = 0;
+    menuSfx.play();
+
     holdTimer = setTimeout(() => {
         isHolding = true;
         radioUi.classList.add('active');
@@ -295,6 +304,7 @@ window.addEventListener('mouseup', handleEnd);
 window.addEventListener('touchstart', handleStart);
 window.addEventListener('touchend', handleEnd);
 
+// Geolocalización y orientación (sin cambios)
 const geoOptions = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
 let smoothLat = null, smoothLng = null;
 const smoothing = 0.18;
