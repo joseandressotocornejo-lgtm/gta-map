@@ -173,6 +173,7 @@
 <audio id="menu-sfx" src="img/gta-sa-menu.mp3"></audio>
 
 <script>
+// --- CONFIGURACIÓN DE MAPA ---
 const paleta = {
     agua: '#7088b0',
     tierra_general: '#38692d',
@@ -217,7 +218,7 @@ map.on('style.load', () => {
     });
 });
 
-// CONFIGURACIÓN DE RUTAS LOCALES
+// --- CONFIGURACIÓN DE RADIO ---
 const logoPath = "img/"; 
 const stations = [
     { name: "Radio Off", logo: logoPath + "RadioOff.png", stream: "" },
@@ -252,8 +253,6 @@ function updateRadioUI() {
 function changeStation(dir) {
     currentIdx = (currentIdx + dir + stations.length) % stations.length;
     document.body.classList.add('changing');
-    
-    // Sonido de estática
     staticSfx.currentTime = 0;
     staticSfx.play();
     
@@ -262,7 +261,7 @@ function changeStation(dir) {
         const s = stations[currentIdx];
         if (s.stream) {
             audio.src = s.stream;
-            audio.play().catch(e => console.log("Audio bloqueado"));
+            audio.play().catch(e => console.log("Audio Bloqueado"));
         } else {
             audio.pause();
             audio.src = "";
@@ -271,11 +270,21 @@ function changeStation(dir) {
     }, 300);
 }
 
+// --- PANTALLA SIEMPRE ENCENDIDA (WAKE LOCK) ---
+let wakeLock = null;
+const requestWakeLock = async () => {
+    try {
+        if ('wakeLock' in navigator) {
+            wakeLock = await navigator.wakeLock.request('screen');
+        }
+    } catch (err) { console.log("WakeLock error"); }
+};
+
+// --- EVENTOS DE INTERACCIÓN ---
 const handleStart = () => {
     clearTimeout(hideTimeout);
     isHolding = false;
     
-    // Sonido de Menú al presionar
     menuSfx.currentTime = 0;
     menuSfx.play();
 
@@ -304,7 +313,7 @@ window.addEventListener('mouseup', handleEnd);
 window.addEventListener('touchstart', handleStart);
 window.addEventListener('touchend', handleEnd);
 
-// Geolocalización y orientación (sin cambios)
+// --- GEOLOCALIZACIÓN Y BRÚJULA ---
 const geoOptions = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
 let smoothLat = null, smoothLng = null;
 const smoothing = 0.18;
@@ -339,6 +348,7 @@ function handleOrientation(event) {
 
 function requestPermissions() {
     startTracking();
+    requestWakeLock(); // Activar wake lock aquí
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission().then(res => {
             if (res === 'granted') window.addEventListener('deviceorientation', handleOrientation);
@@ -349,6 +359,9 @@ function requestPermissions() {
 }
 
 document.body.addEventListener('click', requestPermissions, {once: true});
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') requestWakeLock();
+});
 </script>
 
 </body>
