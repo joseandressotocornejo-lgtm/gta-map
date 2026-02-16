@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>HUD-SAN</title>
+    <title>HUD Radio SA</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
     <script src='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js'></script>
@@ -343,51 +343,76 @@ function requestPermissions() {
 
 document.body.addEventListener('click', requestPermissions, {once: true});
 
-// --- GPS MEJORADO (NO TOCA UI) ---
-const geoOptions = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
+// --- GPS PROFESIONAL PARA MOVIL ---
+const geoOptions = {
+    enableHighAccuracy: true,
+    timeout: 20000,
+    maximumAge: 0
+};
 
+let lastLat = null;
+let lastLng = null;
 let smoothLat = null;
 let smoothLng = null;
-let lastGPSUpdate = 0;
+let lastTime = 0;
 
-const smoothing = 0.20;
-const minInterval = 400;
+const maxJump = 0.0004; // ~40m anti-teleport
+const smoothing = 0.25;
 
-function smoothGPS(lat, lng) {
-    if (smoothLat === null) {
+function distance(a,b,c,d){
+    return Math.sqrt((a-c)*(a-c)+(b-d)*(b-d));
+}
+
+function startTracking(){
+navigator.geolocation.watchPosition(pos => {
+
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    const accuracy = pos.coords.accuracy;
+
+    // ❌ ignorar lecturas malas
+    if(accuracy > 40) return;
+
+    // ❌ ignorar saltos imposibles
+    if(lastLat !== null){
+        const jump = distance(lat,lng,lastLat,lastLng);
+        if(jump > maxJump) return;
+    }
+
+    // suavizado real
+    if(smoothLat === null){
         smoothLat = lat;
         smoothLng = lng;
     } else {
-        smoothLat = smoothLat * (1 - smoothing) + lat * smoothing;
-        smoothLng = smoothLng * (1 - smoothing) + lng * smoothing;
+        smoothLat = smoothLat*(1-smoothing)+lat*smoothing;
+        smoothLng = smoothLng*(1-smoothing)+lng*smoothing;
     }
-    return [smoothLat, smoothLng];
+
+    lastLat = lat;
+    lastLng = lng;
+
+    map.easeTo({
+        center:[smoothLng,smoothLat],
+        duration:600
+    });
+
+}, err => console.log("GPS error:", err), geoOptions);
 }
 
-function startTracking() {
-    navigator.geolocation.watchPosition(pos => {
-        const now = Date.now();
-        if (now - lastGPSUpdate < minInterval) return;
-        lastGPSUpdate = now;
 
-        const [lat, lng] = smoothGPS(pos.coords.latitude, pos.coords.longitude);
-        map.easeTo({ center: [lng, lat], duration: 700 });
-
-    }, err => console.log("GPS error:", err), geoOptions);
-}
-
-// --- BRÚJULA SUAVIZADA ---
+// --- BRÚJULA FILTRADA ---
 let smoothHeading = 0;
-const headingSmoothing = 0.15;
+const headingSmooth = 0.18;
 
-function handleOrientation(event) {
-    let rawHeading = event.webkitCompassHeading || (event.alpha ? 360 - event.alpha : 0);
+function handleOrientation(event){
+let raw = event.webkitCompassHeading ||
+          (event.alpha ? 360 - event.alpha : 0);
 
-    smoothHeading = smoothHeading * (1 - headingSmoothing) + rawHeading * headingSmoothing;
+smoothHeading = smoothHeading*(1-headingSmooth)+raw*headingSmooth;
 
-    map.setBearing(smoothHeading);
-    document.getElementById('north-orbit').style.transform =
-        `rotate(${-smoothHeading}deg)`;
+map.setBearing(smoothHeading);
+document.getElementById('north-orbit').style.transform =
+    `rotate(${-smoothHeading}deg)`;
 }
 
 
