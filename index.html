@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>HUD Mapa Pro - GPS & Radio SA</title>
+    <title>HUD SA</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
     <script src='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js'></script>
@@ -27,7 +27,7 @@
             touch-action: none;
         }
 
-        /* Pantalla de inicio crítica */
+        /* Pantalla de inicio crítica para sensores y audio */
         #start-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -38,6 +38,7 @@
             justify-content: center;
             align-items: center;
             color: white;
+            text-align: center;
         }
 
         #start-btn {
@@ -51,6 +52,7 @@
             cursor: pointer;
             font-family: 'Arial Black', sans-serif;
             box-shadow: 0 0 20px rgba(249, 202, 36, 0.5);
+            margin-top: 20px;
         }
 
         #wrapper {
@@ -59,7 +61,7 @@
             height: var(--hud-size);
             max-width: var(--max-size);
             max-height: var(--max-size);
-            visibility: hidden; /* Usamos visibility en lugar de display para no romper el mapa */
+            visibility: hidden; 
         }
 
         #hud {
@@ -75,7 +77,6 @@
 
         #map { position: absolute; width: 100%; height: 100%; }
 
-        /* Icono del jugador */
         #player {
             position: absolute;
             top: 50%; left: 50%;
@@ -104,9 +105,10 @@
         }
 
         #radio-ui.active { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        .station-icon-radial { position: absolute; width: 45px; height: 45px; transform: translate(-50%, -50%); filter: grayscale(1) opacity(0.4); }
+        .station-icon-radial { position: absolute; width: 45px; height: 45px; transform: translate(-50%, -50%); filter: grayscale(1) opacity(0.4); transition: 0.2s; }
         .station-icon-radial.highlight { filter: grayscale(0) opacity(1); transform: translate(-50%, -50%) scale(1.4); }
-        #station-name { color: var(--gta-yellow); font-size: 1.2rem; text-transform: uppercase; margin-top: 10px; text-shadow: 2px 2px 0px black; font-family: 'Arial Black'; }
+        #station-logo { width: 110px; height: 110px; object-fit: contain; }
+        #station-name { color: var(--gta-yellow); font-size: 1.1rem; text-transform: uppercase; margin-top: 10px; text-shadow: 2px 2px 0px black; font-family: 'Arial Black'; text-align: center; max-width: 80%; }
 
         #north-orbit { position: absolute; width: 100%; height: 100%; z-index: 20; pointer-events: none; }
         #north { position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%); background: black; color: white; font-weight: bold; padding: 5px 15px; border-radius: 50px; }
@@ -115,8 +117,8 @@
 <body>
 
 <div id="start-overlay">
-    <h1 style="font-family: 'Arial Black'; color: #f9ca24; margin-bottom: 5px;">SAN ANDREAS</h1>
-    <p style="margin-bottom: 25px;">SISTEMA GPS Y RADIO</p>
+    <h1 style="font-family: 'Arial Black'; color: #f9ca24; margin: 0;">SAN ANDREAS</h1>
+    <p style="margin: 5px 0 20px 0;">SISTEMA GPS Y RADIO</p>
     <button id="start-btn">INICIAR</button>
 </div>
 
@@ -127,7 +129,7 @@
             <path d="M17 2 C9 2 3 10 3 18 C3 30 17 45 17 45 C17 45 31 30 31 18 C31 10 25 2 17 2 Z" fill="white" stroke="black" stroke-width="4"/>
         </svg>
         <div id="radio-ui">
-            <img id="station-logo" src="img/RadioOff.png" style="width:110px">
+            <img id="station-logo" src="img/RadioOff.png">
             <div id="station-name">RADIO OFF</div>
         </div>
     </div>
@@ -139,7 +141,7 @@
 <audio id="menu-sfx" src="img/gta-sa-menu.mp3"></audio>
 
 <script>
-// --- CONFIGURACIÓN DE COLORES (RESTAURADOS) ---
+// --- 1. CONFIGURACIÓN DE MAPA (COLORES) ---
 const paleta = { agua: '#7088b0', tierra: '#38692d', edificios: '#FFFFFF', calles: '#000000', senderos: '#A78C6A' };
 const map = new maplibregl.Map({ 
     container: 'map', 
@@ -164,33 +166,73 @@ map.on('style.load', () => {
     });
 });
 
-// --- LÓGICA DE SENSORES Y ARRANQUE ---
+// --- 2. DATOS DE LA RADIO ---
+const stations = [
+    { name: "Radio Off", logo: "img/RadioOff.png", file: "", duration: 0 },
+    { name: "Bounce FM", logo: "img/BounceFM.png", file: "https://www.dropbox.com/scl/fi/ca7wu3m85r58rgbv9pd7g/Bounce-FM.ogg?rlkey=v7qw43n1h981dcomxfjpve96v&st=5gx1zfuf&raw=1", duration: 3902 },
+    { name: "CSR 103.9", logo: "img/CSR1039.png", file: "https://www.dropbox.com/scl/fi/fpdmf6o39nbadvw137au1/CSR-103.9.ogg?rlkey=rx77lkc6nhbujzgna49ctl9q9&st=89cquejz&raw=1", duration: 2844 },
+    { name: "K-DST", logo: "img/K-DST.png", file: "https://www.dropbox.com/scl/fi/oosqrvx814k1e3cc5tgup/K-DST.ogg?rlkey=fvf1umkp0y16c1it3n04v2ixx&st=37bzczhr&raw=1", duration: 4001 },
+    { name: "K-JAH West", logo: "img/KJAHWest.png", file: "https://www.dropbox.com/scl/fi/bke95j1p5xoph0li70xm/K-JAH-West.ogg?rlkey=t0x395wzoo3s1slyvmtb364x3&st=p4861lcp&raw=1", duration: 3633 },
+    { name: "K-Rose", logo: "img/K-Rose.png", file: "https://www.dropbox.com/scl/fi/9rqncuwg57ytnhxgogxhw/K-Rose.ogg?rlkey=stkyv5gbrzgg16g1o020j0r8u&st=g5hmzkx2&raw=1", duration: 2886 },
+    { name: "Master Sounds 98.3", logo: "img/MasterSounds983.png", file: "https://www.dropbox.com/scl/fi/1vgwoli2ml2u7i24ft643/Master-Sounds-98.3.ogg?rlkey=bd1gph4a2wnqkc6nsq2p0x2sp&st=waoj51bo&raw=1", duration: 4061 },
+    { name: "Playback FM", logo: "img/PlaybackFM.png", file: "https://www.dropbox.com/scl/fi/5c15ncg6pjxwfr8ls0dga/Playback-FM.ogg?rlkey=aygen0ilmxtmg3oppbnpb633f&st=lvhvgtw6&raw=1", duration: 2810 },
+    { name: "Radio Los Santos", logo: "img/RadioLosSantos.png", file: "https://www.dropbox.com/scl/fi/sinj8ub6wcg6t6sly5upa/Radio-Los-Santos.ogg?rlkey=mil43l09kuhu1fjpj8pl8llfz&st=54uerjxk&raw=1", duration: 3863 },
+    { name: "Radio X", logo: "img/RadioX.png", file: "https://www.dropbox.com/scl/fi/4rvm9go6hrz96wqdh3lpg/Radio-X.ogg?rlkey=c9sy9p84hng643ci46preq4pl&st=vv0zqu8r&raw=1", duration: 3469 },
+    { name: "SF-UR", logo: "img/SFUR.png", file: "https://www.dropbox.com/scl/fi/plk0bquq892pau0h06xk5/SF-UR.ogg?rlkey=6hz4lfd7f4e6axvmtdh3hdsrp&st=vs46r7j9&raw=1", duration: 3973 },
+    { name: "WCTR", logo: "img/WCTR.png", file: "https://www.dropbox.com/scl/fi/zl5jqlhy132qsunbd47o4/West-Coast-Talk-Radio.ogg?rlkey=4400rfyv0cpdvhtzp8o2bflep&st=jmf3rrvk&raw=1", duration: 6599 }
+];
+
+let currentIdx = 0, tempIdx = 0, isHolding = false, holdTimer, lastClickTime = 0, hideTimeout;
+const radioUi = document.getElementById('radio-ui'), audio = document.getElementById('radio-audio');
+const staticSfx = document.getElementById('static-sfx'), menuSfx = document.getElementById('menu-sfx');
+
+stations.forEach((s, i) => {
+    const angle = (i / stations.length) * Math.PI * 2 - Math.PI / 2;
+    const x = 50 + Math.cos(angle) * 38;
+    const y = 50 + Math.sin(angle) * 38;
+    const icon = document.createElement('img');
+    icon.src = s.logo; icon.className = 'station-icon-radial'; icon.id = `rad-${i}`;
+    icon.style.left = `${x}%`; icon.style.top = `${y}%`;
+    radioUi.appendChild(icon);
+});
+
+function applyStation(idx) {
+    currentIdx = idx; const s = stations[currentIdx]; audio.pause();
+    if (s.file) {
+        audio.src = s.file;
+        audio.onloadedmetadata = () => { audio.currentTime = Math.floor(Date.now() / 1000) % s.duration; audio.play().catch(()=>{}); };
+        audio.load();
+    } else { audio.src = ""; }
+}
+
+function updateSelection(idx) {
+    tempIdx = idx;
+    document.getElementById('station-logo').src = stations[idx].logo;
+    document.getElementById('station-name').innerText = stations[idx].name;
+    document.querySelectorAll('.station-icon-radial').forEach(el => el.classList.remove('highlight'));
+    document.getElementById(`rad-${idx}`).classList.add('highlight');
+    staticSfx.currentTime = 0; staticSfx.play();
+}
+
+// --- 3. LÓGICA GPS Y SENSORES ---
 let smoothLat = null, smoothLng = null;
 const smoothing = 0.2;
 
 document.getElementById('start-btn').addEventListener('click', async function() {
-    // 1. Ocultar pantalla de inicio
     document.getElementById('start-overlay').style.display = 'none';
     document.getElementById('wrapper').style.visibility = 'visible';
-
-    // 2. Intentar activar Audio y WakeLock
-    const menuSfx = document.getElementById('menu-sfx');
-    menuSfx.play().catch(() => {});
+    menuSfx.play().catch(()=>{});
     if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(()=>{});
 
-    // 3. Solicitar GPS inmediatamente
     if (navigator.geolocation) {
         navigator.geolocation.watchPosition(pos => {
             const { latitude, longitude } = pos.coords;
             if (smoothLat === null) { smoothLat = latitude; smoothLng = longitude; }
             else { smoothLat = smoothLat * (1-smoothing) + latitude * smoothing; smoothLng = smoothLng * (1-smoothing) + longitude * smoothing; }
             map.easeTo({ center: [smoothLng, smoothLat], duration: 1000 });
-        }, (err) => {
-            alert("Error GPS: Asegúrate de tener la ubicación activada en el celular.");
-        }, { enableHighAccuracy: true });
+        }, null, { enableHighAccuracy: true });
     }
 
-    // 4. Solicitar Brújula (Especial para iPhone)
     const handleOrient = (e) => {
         let heading = e.webkitCompassHeading || (e.alpha ? 360 - e.alpha : 0);
         map.setBearing(heading);
@@ -198,20 +240,52 @@ document.getElementById('start-btn').addEventListener('click', async function() 
     };
 
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        try {
-            const response = await DeviceOrientationEvent.requestPermission();
-            if (response === 'granted') {
-                window.addEventListener('deviceorientation', handleOrient);
-            }
-        } catch (e) { console.error(e); }
-    } else {
-        window.addEventListener('deviceorientation', handleOrient);
-    }
+        const res = await DeviceOrientationEvent.requestPermission();
+        if (res === 'granted') window.addEventListener('deviceorientation', handleOrient);
+    } else { window.addEventListener('deviceorientation', handleOrient); }
 });
 
-// --- (Aquí mantén tu lógica de estaciones de radio y eventos de toque) ---
-// ... [Copia la lógica de stations, applyStation, handleStart, handleMove de tu código anterior] ...
+// --- 4. EVENTOS DE INTERACCIÓN (TOUCH/RADIO) ---
+const handleStart = (e) => {
+    if(e.cancelable) e.preventDefault();
+    clearTimeout(hideTimeout);
+    menuSfx.currentTime = 0; menuSfx.play().catch(()=>{});
+    holdTimer = setTimeout(() => { isHolding = true; tempIdx = currentIdx; radioUi.classList.add('active'); updateSelection(currentIdx); }, 400);
+};
 
+const handleMove = (e) => {
+    if (!isHolding) return;
+    const touch = e.touches ? e.touches[0] : e;
+    const rect = radioUi.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2, centerY = rect.top + rect.height / 2;
+    const angle = Math.atan2(touch.clientY - centerY, touch.clientX - centerX) + Math.PI / 2;
+    const index = Math.round(((angle < 0 ? angle + Math.PI * 2 : angle) / (Math.PI * 2)) * stations.length) % stations.length;
+    if (index !== tempIdx) updateSelection(index);
+};
+
+const handleEnd = () => {
+    clearTimeout(holdTimer);
+    if (isHolding) { 
+        applyStation(tempIdx); 
+        hideTimeout = setTimeout(() => radioUi.classList.remove('active'), 1200); 
+        isHolding = false; 
+    } else {
+        const now = Date.now();
+        if (now - lastClickTime < 300) {
+            let next = (currentIdx + 1) % stations.length;
+            radioUi.classList.add('active'); updateSelection(next); applyStation(next);
+            hideTimeout = setTimeout(() => radioUi.classList.remove('active'), 1500);
+        }
+        lastClickTime = now;
+    }
+};
+
+window.addEventListener('touchstart', handleStart, {passive: false});
+window.addEventListener('touchmove', handleMove, {passive: false});
+window.addEventListener('touchend', handleEnd);
+window.addEventListener('mousedown', handleStart);
+window.addEventListener('mousemove', handleMove);
+window.addEventListener('mouseup', handleEnd);
 </script>
 </body>
 </html>
