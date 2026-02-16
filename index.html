@@ -121,7 +121,6 @@
             mix-blend-mode: screen;
             pointer-events: none;
         }
-        .changing #noise { opacity: 0.25; }
 
         #player {
             position: absolute;
@@ -185,7 +184,7 @@
     </div>
 </div>
 
-<audio id="radio-audio" crossorigin="anonymous"></audio>
+<audio id="radio-audio" loop></audio>
 <audio id="static-sfx" src="https://www.soundjay.com/tv-and-radio/static-radio-01.mp3"></audio>
 <audio id="menu-sfx" src="img/gta-sa-menu.mp3"></audio>
 
@@ -209,21 +208,20 @@ map.on('style.load', () => {
     });
 });
 
-// --- CONFIGURACIÓN DE RADIO ---
-const logoPath = "img/"; 
+// --- CONFIGURACIÓN DE RADIO (Google Drive + Segundos) ---
 const stations = [
-    { name: "Radio Off", logo: logoPath + "RadioOff.png", stream: "" },
-    { name: "Bounce FM", logo: logoPath + "BounceFM.png", stream: "https://audio.gtaradio.net/sa/bounce-fm" },
-    { name: "CSR 103.9", logo: logoPath + "CSR1039.png", stream: "https://audio.gtaradio.net/sa/csr" },
-    { name: "K-DST", logo: logoPath + "K-DST.png", stream: "https://audio.gtaradio.net/sa/k-dst" },
-    { name: "K-JAH West", logo: logoPath + "KJAHWest.png", stream: "https://audio.gtaradio.net/sa/k-jah" },
-    { name: "K-Rose", logo: logoPath + "K-Rose.png", stream: "https://audio.gtaradio.net/sa/k-rose" },
-    { name: "Master Sounds", logo: logoPath + "MasterSounds983.png", stream: "https://audio.gtaradio.net/sa/master-sounds" },
-    { name: "Playback FM", logo: logoPath + "PlaybackFM.png", stream: "https://audio.gtaradio.net/sa/playback-fm" },
-    { name: "Radio Los Santos", logo: logoPath + "RadioLosSantos.png", stream: "https://audio.gtaradio.net/sa/radio-los-santos" },
-    { name: "Radio X", logo: logoPath + "RadioX.png", stream: "https://audio.gtaradio.net/sa/radio-x" },
-    { name: "SF-UR", logo: logoPath + "SFUR.png", stream: "https://audio.gtaradio.net/sa/sfur" },
-    { name: "WCTR", logo: logoPath + "WCTR.png", stream: "https://audio.gtaradio.net/sa/wctr" }
+    { name: "Radio Off", logo: "img/RadioOff.png", file: "", duration: 0 },
+    { name: "Bounce FM", logo: "img/BounceFM.png", file: "https://docs.google.com/uc?export=download&id=1UGNc-cqaRKvnO08nTE2H_pyDSaZOBvbp", duration: 3902 },
+    { name: "CSR 103.9", logo: "img/CSR1039.png", file: "https://docs.google.com/uc?export=download&id=1iXrAxfXrwNWRHdRP7ZYJd93JWB8gyXkm", duration: 2844 },
+    { name: "K-DST", logo: "img/K-DST.png", file: "https://docs.google.com/uc?export=download&id=1bfghaLuV_Nbk9FKi2w_KaUaaa76jCau6", duration: 4001 },
+    { name: "K-JAH West", logo: "img/KJAHWest.png", file: "https://docs.google.com/uc?export=download&id=1bEQLrbi06DVkVubG3KF7ugHekv5eHN38", duration: 3633 },
+    { name: "K-Rose", logo: "img/K-Rose.png", file: "https://docs.google.com/uc?export=download&id=16kmUCb2G0zYyLuMNaAaOyoqMW6nM8OIv", duration: 2886 },
+    { name: "Master Sounds 98.3", logo: "img/MasterSounds983.png", file: "https://docs.google.com/uc?export=download&id=1atC4a-Gc_ek-tX-E1kNVDBCSVr9RnAJy", duration: 4061 },
+    { name: "Playback FM", logo: "img/PlaybackFM.png", file: "https://docs.google.com/uc?export=download&id=1eKOd3HEvkrpu63UX_cjeyvdjftLBQShF", duration: 2810 },
+    { name: "Radio Los Santos", logo: "img/RadioLosSantos.png", file: "https://docs.google.com/uc?export=download&id=1NtuMnWoJGSPGeaF49fzBcKqO_7lglDoE", duration: 3863 },
+    { name: "Radio X", logo: "img/RadioX.png", file: "https://docs.google.com/uc?export=download&id=1OELO4TrjLHvdpTZQnrrl6fX9axdshAHo", duration: 3469 },
+    { name: "SF-UR", logo: "img/SFUR.png", file: "https://docs.google.com/uc?export=download&id=1zXINfJlcduemC5LRg51OyNKTz_6hoE21", duration: 3973 },
+    { name: "WCTR", logo: "img/WCTR.png", file: "https://docs.google.com/uc?export=download&id=1QFelG04CR0PFpbsvxP54O_qEXH6sPpG1", duration: 6599 }
 ];
 
 let currentIdx = 0;
@@ -255,11 +253,19 @@ stations.forEach((s, i) => {
 function applyStation(idx) {
     currentIdx = idx;
     const s = stations[currentIdx];
-    if (s.stream) {
-        audio.src = s.stream;
-        audio.play().catch(e => console.log("Bloqueado"));
+    
+    audio.pause();
+    
+    if (s.file) {
+        audio.src = s.file;
+        const ahora = Math.floor(Date.now() / 1000); 
+        const puntoDeInicio = ahora % s.duration;
+        
+        audio.onloadedmetadata = function() {
+            audio.currentTime = puntoDeInicio;
+            audio.play().catch(e => console.log("Audio bloqueado"));
+        };
     } else {
-        audio.pause();
         audio.src = "";
     }
 }
@@ -274,13 +280,11 @@ function updateSelection(idx) {
     staticSfx.play();
 }
 
-// --- LOGICA DE INTERACCION ---
+// --- LOGICA DE INTERACCION (Radial + Doble Toque) ---
 
 const handleStart = (e) => {
     e.preventDefault();
     clearTimeout(hideTimeout);
-    
-    // Sonido al tocar
     menuSfx.currentTime = 0;
     menuSfx.play();
 
@@ -311,12 +315,10 @@ const handleEnd = () => {
     clearTimeout(holdTimer);
     
     if (isHolding) {
-        // Al soltar tras arrastrar
         applyStation(tempIdx);
         hideTimeout = setTimeout(() => radioUi.classList.remove('active'), 1200);
         isHolding = false;
     } else {
-        // Lógica de Doble Toque
         const now = Date.now();
         if (now - lastClickTime < 300) {
             let next = (currentIdx + 1) % stations.length;
@@ -336,7 +338,7 @@ window.addEventListener('mousedown', handleStart);
 window.addEventListener('mousemove', handleMove);
 window.addEventListener('mouseup', handleEnd);
 
-// --- GPS Y ORIENTACIÓN (Original) ---
+// --- GPS Y ORIENTACIÓN ---
 function requestPermissions() {
     startTracking();
     if ('wakeLock' in navigator) navigator.wakeLock.request('screen');
@@ -350,9 +352,25 @@ document.body.addEventListener('click', requestPermissions, {once: true});
 const geoOptions = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
 let smoothLat = null, smoothLng = null;
 const smoothing = 0.18;
-function smoothGPS(lat, lng) { if (smoothLat === null) { smoothLat = lat; smoothLng = lng; } else { smoothLat = smoothLat * (1 - smoothing) + lat * smoothing; smoothLng = smoothLng * (1 - smoothing) + lng * smoothing; } return [smoothLat, smoothLng]; }
-function startTracking() { navigator.geolocation.watchPosition(pos => { const [lat, lng] = smoothGPS(pos.coords.latitude, pos.coords.longitude); map.easeTo({ center: [lng, lat], duration: 900 }); }, null, geoOptions); }
-function handleOrientation(event) { let rawHeading = event.webkitCompassHeading || (event.alpha ? 360 - event.alpha : 0); map.setBearing(rawHeading); document.getElementById('north-orbit').style.transform = `rotate(${-rawHeading}deg)`; }
+
+function smoothGPS(lat, lng) { 
+    if (smoothLat === null) { smoothLat = lat; smoothLng = lng; } 
+    else { smoothLat = smoothLat * (1 - smoothing) + lat * smoothing; smoothLng = smoothLng * (1 - smoothing) + lng * smoothing; } 
+    return [smoothLat, smoothLng]; 
+}
+
+function startTracking() { 
+    navigator.geolocation.watchPosition(pos => { 
+        const [lat, lng] = smoothGPS(pos.coords.latitude, pos.coords.longitude); 
+        map.easeTo({ center: [lng, lat], duration: 900 }); 
+    }, null, geoOptions); 
+}
+
+function handleOrientation(event) { 
+    let rawHeading = event.webkitCompassHeading || (event.alpha ? 360 - event.alpha : 0); 
+    map.setBearing(rawHeading); 
+    document.getElementById('north-orbit').style.transform = `rotate(${-rawHeading}deg)`; 
+}
 </script>
 
 </body>
