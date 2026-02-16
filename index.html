@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>HUD Mapa Pro - GPS & Radio SA</title>
+    <title>HUD Radio SA</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
     <script src='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js'></script>
@@ -17,22 +17,23 @@
 
         body {
             margin: 0;
-            background: #1a3315; 
+            background: #25471E; 
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             font-family: 'Segoe UI', Arial, sans-serif;
             overflow: hidden;
+            box-sizing: border-box;
             touch-action: none;
         }
 
-        /* Pantalla de inicio para activar sensores */
-        #overlay {
+        /* Pantalla de inicio necesaria para activar sensores en móviles */
+        #start-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            z-index: 1000;
+            background: rgba(0,0,0,0.85);
+            z-index: 2000;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -45,12 +46,13 @@
             background: var(--gta-yellow);
             color: black;
             border: none;
-            padding: 15px 30px;
-            font-size: 1.2rem;
+            padding: 15px 40px;
+            font-size: 1.5rem;
             font-weight: bold;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
-            text-transform: uppercase;
+            margin-top: 20px;
+            font-family: 'Arial Black', sans-serif;
         }
 
         #wrapper {
@@ -59,7 +61,7 @@
             height: var(--hud-size);
             max-width: var(--max-size);
             max-height: var(--max-size);
-            display: none; /* Se muestra al iniciar */
+            display: none; /* Se oculta hasta que se pulse el botón */
         }
 
         #hud {
@@ -71,24 +73,10 @@
             background: #38692d;
             box-shadow: 0 10px 40px rgba(0,0,0,0.5);
             z-index: 1;
+            box-sizing: border-box;
         }
 
-        #map { position: absolute; width: 100%; height: 100%; }
-
-        #player-container {
-            position: absolute;
-            top: 50%; left: 50%;
-            width: 40px; height: 40px;
-            transform: translate(-50%, -50%);
-            z-index: 10;
-            pointer-events: none;
-        }
-
-        #player-arrow {
-            width: 100%; height: 100%;
-            transform: rotate(180deg); /* Punta hacia arriba */
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
-        }
+        #map { position: absolute; width: 100%; height: 100%; z-index: 1; }
 
         #radio-ui {
             position: absolute;
@@ -104,25 +92,80 @@
             align-items: center;
             opacity: 0;
             pointer-events: none;
-            transition: 0.3s;
+            transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             border: 4px solid var(--gta-yellow);
+            box-sizing: border-box;
         }
 
         #radio-ui.active { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        .station-icon-radial { position: absolute; width: 45px; height: 45px; transform: translate(-50%, -50%); filter: grayscale(1) opacity(0.4); z-index: 101; }
-        .station-icon-radial.highlight { filter: grayscale(0) opacity(1); transform: translate(-50%, -50%) scale(1.4); }
-        #station-name { color: var(--gta-yellow); font-size: 1.1rem; text-transform: uppercase; margin-top: 10px; text-shadow: 2px 2px 0px black; font-family: 'Arial Black'; }
 
-        #north-orbit { position: absolute; width: 100%; height: 100%; z-index: 20; pointer-events: none; }
-        #north { position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%); background: black; color: white; font-weight: bold; padding: 5px 12px; border-radius: 50px; }
+        .station-icon-radial {
+            position: absolute;
+            width: 45px; height: 45px;
+            transform: translate(-50%, -50%);
+            transition: transform 0.2s, filter 0.2s;
+            filter: grayscale(1) opacity(0.4);
+            z-index: 101;
+        }
+
+        .station-icon-radial.highlight { filter: grayscale(0) opacity(1); transform: translate(-50%, -50%) scale(1.4); }
+
+        #station-logo { width: 120px; height: 120px; object-fit: contain; }
+
+        #station-name {
+            color: var(--gta-yellow);
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            font-family: 'Arial Black', sans-serif;
+            margin-top: 10px;
+            text-shadow: 2px 2px 0px black;
+            text-align: center;
+            max-width: 80%;
+        }
+
+        #player-container {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 35px; height: 35px;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        #player-arrow {
+            width: 100%; height: 100%;
+            transform: rotate(180deg); /* Flecha mirando hacia adelante/arriba */
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+        }
+
+        #north-orbit {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 20;
+            pointer-events: none;
+            transition: transform 0.1s linear;
+        }
+
+        #north {
+            position: absolute;
+            top: 0; left: 50%;
+            transform: translate(-50%, -50%);
+            background: black;
+            color: white;
+            font-weight: bold;
+            font-size: calc(var(--hud-size) * 0.05);
+            padding: 1.5% 3.5%;
+            border-radius: 100px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
     </style>
 </head>
+
 <body>
 
-<div id="overlay">
-    <h2>GPS & RADIO SA</h2>
-    <p>Presiona para iniciar sistema</p>
-    <button id="start-btn">CONECTAR GPS</button>
+<div id="start-overlay">
+    <h1 style="font-family: 'Arial Black'; color: #f9ca24; text-shadow: 2px 2px black;">GPS & RADIO SA</h1>
+    <button id="start-btn">CONECTAR</button>
 </div>
 
 <div id="wrapper">
@@ -134,84 +177,160 @@
             </svg>
         </div>
         <div id="radio-ui">
-            <img id="station-logo" src="img/RadioOff.png" style="width:100px">
+            <img id="station-logo" src="img/RadioOff.png">
             <div id="station-name">RADIO OFF</div>
         </div>
     </div>
     <div id="north-orbit"><div id="north">N</div></div>
 </div>
 
-<audio id="radio-audio" loop></audio>
+<audio id="radio-audio" preload="metadata" loop></audio>
 <audio id="static-sfx" src="https://www.soundjay.com/tv-and-radio/static-radio-01.mp3"></audio>
 <audio id="menu-sfx" src="img/gta-sa-menu.mp3"></audio>
 
 <script>
-const paleta = { agua: '#7088b0', tierra: '#38692d', edificios: '#FFFFFF', calles: '#000000', senderos: '#A78C6A' };
-let smoothLat = null, smoothLng = null;
-const smoothing = 0.2;
-
-const map = new maplibregl.Map({ 
-    container: 'map', 
-    style: 'https://tiles.openfreemap.org/styles/bright', 
-    center: [-70.6483, -33.4569], 
-    zoom: 18, 
-    attributionControl: false, 
-    interactive: false 
-});
+// --- CONFIGURACIÓN DE MAPA (COLORES RESTAURADOS) ---
+const paleta = { agua: '#7088b0', tierra_general: '#38692d', edificios: '#FFFFFF', calles_negras: '#000000', senderos_marron: '#A78C6A' };
+const map = new maplibregl.Map({ container: 'map', style: 'https://tiles.openfreemap.org/styles/bright', center: [-70.6483, -33.4569], zoom: 18, attributionControl: false, interactive: false });
 
 map.on('style.load', () => {
-    map.setPaintProperty('background', 'background-color', paleta.tierra);
+    map.setPaintProperty('background', 'background-color', paleta.tierra_general);
     if (map.getLayer('building')) { map.setPaintProperty('building', 'fill-color', paleta.edificios); map.setPaintProperty('building', 'fill-outline-color', '#000000'); }
-    
     map.getStyle().layers.forEach(layer => {
         if (layer.id.includes('water')) map.setPaintProperty(layer.id, 'fill-color', paleta.agua);
-        if (layer.id.includes('park') || layer.id.includes('landuse')) map.setPaintProperty(layer.id, 'fill-color', paleta.tierra);
-        
-        if (layer.type === 'line') {
-            const isPath = layer.id.includes('path') || layer.id.includes('footway');
-            map.setPaintProperty(layer.id, 'line-color', isPath ? paleta.senderos : paleta.calles);
-            map.setPaintProperty(layer.id, 'line-width', isPath ? 3 : 8);
+        if (layer.id.includes('park')) map.setPaintProperty(layer.id, 'fill-color', paleta.tierra_general);
+        const esVia = layer.id.includes('highway') || layer.id.includes('bridge') || layer.id.includes('tunnel');
+        if (layer.type === 'line' && esVia) {
+            const esSendero = layer.id.includes('path') || layer.id.includes('footway') || layer.id.includes('track');
+            if (esSendero) { map.setPaintProperty(layer.id, 'line-color', paleta.senderos_marron); map.setPaintProperty(layer.id, 'line-width', 3); }
+            else { map.setPaintProperty(layer.id, 'line-color', paleta.calles_negras); map.setPaintProperty(layer.id, 'line-width', ['interpolate', ['linear'], ['zoom'], 14, 2, 18, 10]); }
         }
     });
 });
 
-// --- SISTEMA DE INICIO ---
-document.getElementById('start-btn').addEventListener('click', async () => {
-    document.getElementById('overlay').style.display = 'none';
+// --- ESTACIONES RADIO ---
+const stations = [
+    { name: "Radio Off", logo: "img/RadioOff.png", file: "", duration: 0 },
+    { name: "Bounce FM", logo: "img/BounceFM.png", file: "https://www.dropbox.com/scl/fi/ca7wu3m85r58rgbv9pd7g/Bounce-FM.ogg?rlkey=v7qw43n1h981dcomxfjpve96v&st=5gx1zfuf&raw=1", duration: 3902 },
+    { name: "CSR 103.9", logo: "img/CSR1039.png", file: "https://www.dropbox.com/scl/fi/fpdmf6o39nbadvw137au1/CSR-103.9.ogg?rlkey=rx77lkc6nhbujzgna49ctl9q9&st=89cquejz&raw=1", duration: 2844 },
+    { name: "K-DST", logo: "img/K-DST.png", file: "https://www.dropbox.com/scl/fi/oosqrvx814k1e3cc5tgup/K-DST.ogg?rlkey=fvf1umkp0y16c1it3n04v2ixx&st=37bzczhr&raw=1", duration: 4001 },
+    { name: "K-JAH West", logo: "img/KJAHWest.png", file: "https://www.dropbox.com/scl/fi/bke95j1p5xoph0li70xm/K-JAH-West.ogg?rlkey=t0x395wzoo3s1slyvmtb364x3&st=p4861lcp&raw=1", duration: 3633 },
+    { name: "K-Rose", logo: "img/K-Rose.png", file: "https://www.dropbox.com/scl/fi/9rqncuwg57ytnhxgogxhw/K-Rose.ogg?rlkey=stkyv5gbrzgg16g1o020j0r8u&st=g5hmzkx2&raw=1", duration: 2886 },
+    { name: "Master Sounds 98.3", logo: "img/MasterSounds983.png", file: "https://www.dropbox.com/scl/fi/1vgwoli2ml2u7i24ft643/Master-Sounds-98.3.ogg?rlkey=bd1gph4a2wnqkc6nsq2p0x2sp&st=waoj51bo&raw=1", duration: 4061 },
+    { name: "Playback FM", logo: "img/PlaybackFM.png", file: "https://www.dropbox.com/scl/fi/5c15ncg6pjxwfr8ls0dga/Playback-FM.ogg?rlkey=aygen0ilmxtmg3oppbnpb633f&st=lvhvgtw6&raw=1", duration: 2810 },
+    { name: "Radio Los Santos", logo: "img/RadioLosSantos.png", file: "https://www.dropbox.com/scl/fi/sinj8ub6wcg6t6sly5upa/Radio-Los-Santos.ogg?rlkey=mil43l09kuhu1fjpj8pl8llfz&st=54uerjxk&raw=1", duration: 3863 },
+    { name: "Radio X", logo: "img/RadioX.png", file: "https://www.dropbox.com/scl/fi/4rvm9go6hrz96wqdh3lpg/Radio-X.ogg?rlkey=c9sy9p84hng643ci46preq4pl&st=vv0zqu8r&raw=1", duration: 3469 },
+    { name: "SF-UR", logo: "img/SFUR.png", file: "https://www.dropbox.com/scl/fi/plk0bquq892pau0h06xk5/SF-UR.ogg?rlkey=6hz4lfd7f4e6axvmtdh3hdsrp&st=vs46r7j9&raw=1", duration: 3973 },
+    { name: "WCTR", logo: "img/WCTR.png", file: "https://www.dropbox.com/scl/fi/zl5jqlhy132qsunbd47o4/West-Coast-Talk-Radio.ogg?rlkey=4400rfyv0cpdvhtzp8o2bflep&st=jmf3rrvk&raw=1", duration: 6599 }
+];
+
+let currentIdx = 0, tempIdx = 0, isHolding = false, holdTimer, lastClickTime = 0, hideTimeout;
+const radioUi = document.getElementById('radio-ui'), audio = document.getElementById('radio-audio');
+const staticSfx = document.getElementById('static-sfx'), menuSfx = document.getElementById('menu-sfx');
+
+stations.forEach((s, i) => {
+    const angle = (i / stations.length) * Math.PI * 2 - Math.PI / 2;
+    const x = 50 + Math.cos(angle) * 38;
+    const y = 50 + Math.sin(angle) * 38;
+    const icon = document.createElement('img');
+    icon.src = s.logo; icon.className = 'station-icon-radial'; icon.id = `rad-${i}`;
+    icon.style.left = `${x}%`; icon.style.top = `${y}%`;
+    radioUi.appendChild(icon);
+});
+
+function applyStation(idx) {
+    currentIdx = idx; const s = stations[currentIdx]; audio.pause();
+    if (s.file) {
+        audio.src = s.file;
+        audio.onloadedmetadata = () => { audio.currentTime = Math.floor(Date.now() / 1000) % s.duration; audio.play().catch(e => {}); };
+        audio.load();
+    } else { audio.src = ""; }
+}
+
+function updateSelection(idx) {
+    tempIdx = idx;
+    document.getElementById('station-logo').src = stations[idx].logo;
+    document.getElementById('station-name').innerText = stations[idx].name;
+    document.querySelectorAll('.station-icon-radial').forEach(el => el.classList.remove('highlight'));
+    document.getElementById(`rad-${idx}`).classList.add('highlight');
+    staticSfx.currentTime = 0; staticSfx.play();
+}
+
+// --- LOGICA GPS (CORREGIDA PARA MÓVIL) ---
+let smoothLat = null, smoothLng = null;
+const smoothing = 0.2;
+
+async function startSystem() {
+    document.getElementById('start-overlay').style.display = 'none';
     document.getElementById('wrapper').style.display = 'block';
-    
-    // WakeLock
+
+    // WakeLock para que no se apague la pantalla
     if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(()=>{});
 
-    // Iniciar GPS
-    if (navigator.geolocation) {
-        navigator.geolocation.watchPosition(pos => {
-            const { latitude, longitude } = pos.coords;
-            if (smoothLat === null) { smoothLat = latitude; smoothLng = longitude; }
-            else { smoothLat = smoothLat * (1-smoothing) + latitude * smoothing; smoothLng = smoothLng * (1-smoothing) + longitude * smoothing; }
-            map.easeTo({ center: [smoothLng, smoothLat], duration: 1000 });
-        }, (e) => alert("Error GPS: " + e.message), { enableHighAccuracy: true });
-    }
-
-    // Iniciar Brújula
-    const handleOrient = (e) => {
-        let heading = e.webkitCompassHeading || (e.alpha ? 360 - e.alpha : 0);
+    // Permisos y Brújula
+    const handleOrientation = (event) => {
+        let heading = event.webkitCompassHeading || (event.alpha ? 360 - event.alpha : 0);
         map.setBearing(heading);
         document.getElementById('north-orbit').style.transform = `rotate(${-heading}deg)`;
     };
 
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        try {
-            const res = await DeviceOrientationEvent.requestPermission();
-            if (res === 'granted') window.addEventListener('deviceorientation', handleOrient);
-        } catch(e) { console.error(e); }
+        const result = await DeviceOrientationEvent.requestPermission();
+        if (result === 'granted') window.addEventListener('deviceorientation', handleOrientation);
     } else {
-        window.addEventListener('deviceorientation', handleOrient);
+        window.addEventListener('deviceorientation', handleOrientation);
     }
-});
 
-// --- LÓGICA DE RADIO (IGUAL A LA ANTERIOR) ---
-// [Aquí se mantiene tu código de las estaciones y eventos touch/mouse]
+    // GPS con seguimiento suave
+    navigator.geolocation.watchPosition(pos => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        if (smoothLat === null) { smoothLat = lat; smoothLng = lng; }
+        else { smoothLat = smoothLat * (1 - smoothing) + lat * smoothing; smoothLng = smoothLng * (1 - smoothing) + lng * smoothing; }
+        map.easeTo({ center: [smoothLng, smoothLat], duration: 1000 });
+    }, (err) => alert("Error GPS: " + err.message), { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+}
+
+document.getElementById('start-btn').addEventListener('click', startSystem);
+
+// --- EVENTOS DE INTERACCION (RADIO) ---
+const handleStart = (e) => {
+    if(e.cancelable) e.preventDefault();
+    clearTimeout(hideTimeout);
+    menuSfx.currentTime = 0; menuSfx.play();
+    holdTimer = setTimeout(() => { isHolding = true; tempIdx = currentIdx; radioUi.classList.add('active'); updateSelection(currentIdx); }, 400);
+};
+
+const handleMove = (e) => {
+    if (!isHolding) return;
+    const touch = e.touches ? e.touches[0] : e;
+    const rect = radioUi.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2, centerY = rect.top + rect.height / 2;
+    const angle = Math.atan2(touch.clientY - centerY, touch.clientX - centerX) + Math.PI / 2;
+    const index = Math.round(((angle < 0 ? angle + Math.PI * 2 : angle) / (Math.PI * 2)) * stations.length) % stations.length;
+    if (index !== tempIdx) updateSelection(index);
+};
+
+const handleEnd = () => {
+    clearTimeout(holdTimer);
+    if (isHolding) { applyStation(tempIdx); hideTimeout = setTimeout(() => radioUi.classList.remove('active'), 1200); isHolding = false; }
+    else {
+        const now = Date.now();
+        if (now - lastClickTime < 300) {
+            let next = (currentIdx + 1) % stations.length;
+            radioUi.classList.add('active'); updateSelection(next); applyStation(next);
+            hideTimeout = setTimeout(() => radioUi.classList.remove('active'), 1500);
+        }
+        lastClickTime = now;
+    }
+};
+
+window.addEventListener('touchstart', handleStart, {passive: false});
+window.addEventListener('touchmove', handleMove, {passive: false});
+window.addEventListener('touchend', handleEnd);
+window.addEventListener('mousedown', handleStart);
+window.addEventListener('mousemove', handleMove);
+window.addEventListener('mouseup', handleEnd);
 </script>
 </body>
 </html>
