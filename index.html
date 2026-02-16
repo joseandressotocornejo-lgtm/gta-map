@@ -56,7 +56,6 @@
             z-index: 1;
         }
 
-        /* --- ESTILOS DEL SELECTOR RADIAL --- */
         #radio-ui {
             position: absolute;
             top: 50%; left: 50%;
@@ -154,11 +153,6 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             white-space: nowrap;
         }
-
-        @media (min-width: 650px) {
-            #hud { border-width: 6px; }
-            #north { font-size: 22px; padding: 6px 14px; }
-        }
     </style>
 </head>
 
@@ -184,7 +178,7 @@
     </div>
 </div>
 
-<audio id="radio-audio" loop></audio>
+<audio id="radio-audio" preload="metadata" loop></audio>
 <audio id="static-sfx" src="https://www.soundjay.com/tv-and-radio/static-radio-01.mp3"></audio>
 <audio id="menu-sfx" src="img/gta-sa-menu.mp3"></audio>
 
@@ -208,13 +202,13 @@ map.on('style.load', () => {
     });
 });
 
-// --- CONFIGURACIÓN DE RADIO (Dropbox Links) ---
+// --- ESTACIONES CON DROPBOX ---
 const stations = [
     { name: "Radio Off", logo: "img/RadioOff.png", file: "", duration: 0 },
     { name: "Bounce FM", logo: "img/BounceFM.png", file: "https://www.dropbox.com/scl/fi/ca7wu3m85r58rgbv9pd7g/Bounce-FM.ogg?rlkey=v7qw43n1h981dcomxfjpve96v&st=5gx1zfuf&raw=1", duration: 3902 },
     { name: "CSR 103.9", logo: "img/CSR1039.png", file: "https://www.dropbox.com/scl/fi/fpdmf6o39nbadvw137au1/CSR-103.9.ogg?rlkey=rx77lkc6nhbujzgna49ctl9q9&st=89cquejz&raw=1", duration: 2844 },
     { name: "K-DST", logo: "img/K-DST.png", file: "https://www.dropbox.com/scl/fi/oosqrvx814k1e3cc5tgup/K-DST.ogg?rlkey=fvf1umkp0y16c1it3n04v2ixx&st=37bzczhr&raw=1", duration: 4001 },
-    { name: "K-JAH West", logo: "img/KJAHWest.png", file: "https://www.dropbox.com/scl/fi/bke95j1p5xoqph0li70xm/K-JAH-West.ogg?rlkey=t0x395wzoo3s1slyvmtb364x3&st=p4861lcp&raw=1", duration: 3633 },
+    { name: "K-JAH West", logo: "img/KJAHWest.png", file: "https://www.dropbox.com/scl/fi/bke95j1p5xoph0li70xm/K-JAH-West.ogg?rlkey=t0x395wzoo3s1slyvmtb364x3&st=p4861lcp&raw=1", duration: 3633 },
     { name: "K-Rose", logo: "img/K-Rose.png", file: "https://www.dropbox.com/scl/fi/9rqncuwg57ytnhxgogxhw/K-Rose.ogg?rlkey=stkyv5gbrzgg16g1o020j0r8u&st=g5hmzkx2&raw=1", duration: 2886 },
     { name: "Master Sounds 98.3", logo: "img/MasterSounds983.png", file: "https://www.dropbox.com/scl/fi/1vgwoli2ml2u7i24ft643/Master-Sounds-98.3.ogg?rlkey=bd1gph4a2wnqkc6nsq2p0x2sp&st=waoj51bo&raw=1", duration: 4061 },
     { name: "Playback FM", logo: "img/PlaybackFM.png", file: "https://www.dropbox.com/scl/fi/5c15ncg6pjxwfr8ls0dga/Playback-FM.ogg?rlkey=aygen0ilmxtmg3oppbnpb633f&st=lvhvgtw6&raw=1", duration: 2810 },
@@ -249,24 +243,30 @@ stations.forEach((s, i) => {
     radioUi.appendChild(icon);
 });
 
+// --- FUNCIÓN DE CARGA OPTIMIZADA ---
 function applyStation(idx) {
     currentIdx = idx;
     const s = stations[currentIdx];
+    
     audio.pause();
-    audio.removeAttribute('src'); // Limpiar fuente para evitar errores de buffer
-    audio.load();
+    audio.onloadedmetadata = null; // Limpiar eventos anteriores
     
     if (s.file) {
-        audio.src = s.file;
         const ahora = Math.floor(Date.now() / 1000); 
         const puntoDeInicio = ahora % s.duration;
+
+        audio.src = s.file;
         
-        // Usamos 'canplay' para asegurar que Dropbox ya respondió
-        audio.oncanplay = function() {
+        // El evento loadedmetadata se dispara en cuanto el navegador conoce la duración
+        // Es mucho más rápido que esperar a que el buffer esté lleno
+        audio.onloadedmetadata = function() {
             audio.currentTime = puntoDeInicio;
             audio.play().catch(e => console.log("Clic Requerido"));
-            audio.oncanplay = null;
         };
+        
+        audio.load(); // Forzamos el inicio de la carga de metadatos
+    } else {
+        audio.src = "";
     }
 }
 
