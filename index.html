@@ -97,7 +97,6 @@
         #station-logo {
             width: 120px; height: 120px;
             object-fit: contain;
-            transition: transform 0.2s;
         }
 
         #station-name {
@@ -108,17 +107,6 @@
             margin-top: 10px;
             text-shadow: 2px 2px 0px black;
             text-align: center;
-            max-width: 80%;
-        }
-
-        #noise {
-            position: absolute;
-            width: 100%; height: 100%;
-            background: url('https://media.giphy.com/media/oEI9uWUicGLeE/giphy.gif');
-            opacity: 0;
-            border-radius: 50%;
-            mix-blend-mode: screen;
-            pointer-events: none;
         }
 
         #player {
@@ -137,7 +125,6 @@
             width: 100%; height: 100%;
             z-index: 20;
             pointer-events: none;
-            transition: transform 0.1s linear;
         }
 
         #north {
@@ -147,11 +134,9 @@
             background: black;
             color: white;
             font-weight: bold;
-            font-size: calc(var(--hud-size) * 0.05);
-            padding: 1.5% 3.5%;
+            font-size: 20px;
+            padding: 5px 12px;
             border-radius: 100px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            white-space: nowrap;
         }
     </style>
 </head>
@@ -167,7 +152,6 @@
         </svg>
 
         <div id="radio-ui">
-            <div id="noise"></div>
             <img id="station-logo" src="img/RadioOff.png" alt="radio">
             <div id="station-name">RADIO OFF</div>
         </div>
@@ -183,26 +167,17 @@
 <audio id="menu-sfx" src="img/gta-sa-menu.mp3"></audio>
 
 <script>
-// --- CONFIGURACIÓN DE MAPA ---
-const paleta = { agua: '#7088b0', tierra_general: '#38692d', urbano: '#989898', parques: '#788c40', edificios: '#FFFFFF', calles_negras: '#000000', senderos_marron: '#A78C6A' };
-const map = new maplibregl.Map({ container: 'map', style: 'https://tiles.openfreemap.org/styles/bright', center: [-70.6483, -33.4569], zoom: 18, pitch: 0, bearing: 0, attributionControl: false, interactive: false });
-
-map.on('style.load', () => {
-    map.setPaintProperty('background', 'background-color', paleta.tierra_general);
-    if (map.getLayer('building')) { map.setPaintProperty('building', 'fill-color', paleta.edificios); map.setPaintProperty('building', 'fill-outline-color', '#000000'); }
-    map.getStyle().layers.forEach(layer => {
-        if (map.getLayer('water')) map.setPaintProperty('water', 'fill-color', paleta.agua);
-        if (map.getLayer('park')) map.setPaintProperty('park', 'fill-color', paleta.parques);
-        const esVia = layer.id.includes('highway') || layer.id.includes('bridge') || layer.id.includes('tunnel');
-        if (layer.type === 'line' && esVia) {
-            const esSendero = layer.id.includes('path') || layer.id.includes('footway') || layer.id.includes('track');
-            if (esSendero) { map.setPaintProperty(layer.id, 'line-color', paleta.senderos_marron); map.setPaintProperty(layer.id, 'line-width', 3); }
-            else { map.setPaintProperty(layer.id, 'line-color', paleta.calles_negras); map.setPaintProperty(layer.id, 'line-width', ['interpolate', ['linear'], ['zoom'], 14, 2, 18, 10]); }
-        }
-    });
+// --- MAPA ---
+const map = new maplibregl.Map({ 
+    container: 'map', 
+    style: 'https://tiles.openfreemap.org/styles/bright', 
+    center: [-70.6483, -33.4569], 
+    zoom: 17, 
+    attributionControl: false, 
+    interactive: false 
 });
 
-// --- ESTACIONES CON DROPBOX ---
+// --- ESTACIONES ---
 const stations = [
     { name: "Radio Off", logo: "img/RadioOff.png", file: "", duration: 0 },
     { name: "Bounce FM", logo: "img/BounceFM.png", file: "https://www.dropbox.com/scl/fi/ca7wu3m85r58rgbv9pd7g/Bounce-FM.ogg?rlkey=v7qw43n1h981dcomxfjpve96v&st=5gx1zfuf&raw=1", duration: 3902 },
@@ -218,55 +193,27 @@ const stations = [
     { name: "WCTR", logo: "img/WCTR.png", file: "https://www.dropbox.com/scl/fi/zl5jqlhy132qsunbd47o4/West-Coast-Talk-Radio.ogg?rlkey=4400rfyv0cpdvhtzp8o2bflep&st=jmf3rrvk&raw=1", duration: 6599 }
 ];
 
-let currentIdx = 0;
-let tempIdx = 0;
-let isHolding = false;
-let holdTimer;
-let lastClickTime = 0;
-let hideTimeout;
-
-const radioUi = document.getElementById('radio-ui');
-const audio = document.getElementById('radio-audio');
-const staticSfx = document.getElementById('static-sfx');
-const menuSfx = document.getElementById('menu-sfx');
+let currentIdx = 0, tempIdx = 0, isHolding = false, holdTimer, lastClickTime = 0, hideTimeout;
+const radioUi = document.getElementById('radio-ui'), audio = document.getElementById('radio-audio');
+const staticSfx = document.getElementById('static-sfx'), menuSfx = document.getElementById('menu-sfx');
 
 stations.forEach((s, i) => {
     const angle = (i / stations.length) * Math.PI * 2 - Math.PI / 2;
     const x = 50 + Math.cos(angle) * 38;
     const y = 50 + Math.sin(angle) * 38;
     const icon = document.createElement('img');
-    icon.src = s.logo;
-    icon.className = 'station-icon-radial';
-    icon.id = `rad-${i}`;
-    icon.style.left = `${x}%`;
-    icon.style.top = `${y}%`;
+    icon.src = s.logo; icon.className = 'station-icon-radial'; icon.id = `rad-${i}`;
+    icon.style.left = `${x}%`; icon.style.top = `${y}%`;
     radioUi.appendChild(icon);
 });
 
-// --- FUNCIÓN DE CARGA OPTIMIZADA ---
 function applyStation(idx) {
-    currentIdx = idx;
-    const s = stations[currentIdx];
-    
-    audio.pause();
-    audio.onloadedmetadata = null; // Limpiar eventos anteriores
-    
+    currentIdx = idx; const s = stations[currentIdx]; audio.pause();
     if (s.file) {
-        const ahora = Math.floor(Date.now() / 1000); 
-        const puntoDeInicio = ahora % s.duration;
-
+        const ahora = Math.floor(Date.now() / 1000);
         audio.src = s.file;
-        
-        // El evento loadedmetadata se dispara en cuanto el navegador conoce la duración
-        // Es mucho más rápido que esperar a que el buffer esté lleno
-        audio.onloadedmetadata = function() {
-            audio.currentTime = puntoDeInicio;
-            audio.play().catch(e => console.log("Clic Requerido"));
-        };
-        
-        audio.load(); // Forzamos el inicio de la carga de metadatos
-    } else {
-        audio.src = "";
+        audio.onloadedmetadata = () => { audio.currentTime = ahora % s.duration; audio.play(); };
+        audio.load();
     }
 }
 
@@ -276,51 +223,35 @@ function updateSelection(idx) {
     document.getElementById('station-name').innerText = stations[idx].name;
     document.querySelectorAll('.station-icon-radial').forEach(el => el.classList.remove('highlight'));
     document.getElementById(`rad-${idx}`).classList.add('highlight');
-    staticSfx.currentTime = 0;
-    staticSfx.play();
+    staticSfx.currentTime = 0; staticSfx.play();
 }
 
-// --- LOGICA DE INTERACCION ---
+// --- INTERACCIÓN ---
 const handleStart = (e) => {
-    e.preventDefault();
-    clearTimeout(hideTimeout);
-    menuSfx.currentTime = 0;
-    menuSfx.play();
-    holdTimer = setTimeout(() => {
-        isHolding = true;
-        tempIdx = currentIdx;
-        radioUi.classList.add('active');
-        updateSelection(currentIdx);
-    }, 400);
+    if(e.type === 'touchstart') e.preventDefault();
+    menuSfx.currentTime = 0; menuSfx.play();
+    holdTimer = setTimeout(() => { isHolding = true; radioUi.classList.add('active'); updateSelection(currentIdx); }, 400);
 };
 
 const handleMove = (e) => {
     if (!isHolding) return;
-    const touch = e.touches ? e.touches[0] : e;
+    const pos = e.touches ? e.touches[0] : e;
     const rect = radioUi.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const angle = Math.atan2(touch.clientY - centerY, touch.clientX - centerX);
-    let normalizedAngle = angle + Math.PI / 2;
-    if (normalizedAngle < 0) normalizedAngle += Math.PI * 2;
-    const index = Math.round((normalizedAngle / (Math.PI * 2)) * stations.length) % stations.length;
+    const angle = Math.atan2(pos.clientY - (rect.top + rect.height/2), pos.clientX - (rect.left + rect.width/2)) + Math.PI/2;
+    const index = Math.round(((angle < 0 ? angle + Math.PI*2 : angle) / (Math.PI*2)) * stations.length) % stations.length;
     if (index !== tempIdx) updateSelection(index);
 };
 
 const handleEnd = () => {
     clearTimeout(holdTimer);
-    if (isHolding) {
-        applyStation(tempIdx);
-        hideTimeout = setTimeout(() => radioUi.classList.remove('active'), 1200);
-        isHolding = false;
-    } else {
+    if (isHolding) { applyStation(tempIdx); setTimeout(() => radioUi.classList.remove('active'), 1000); isHolding = false; }
+    else {
         const now = Date.now();
-        if (now - lastClickTime < 300) {
-            let next = (currentIdx + 1) % stations.length;
-            radioUi.classList.add('active');
-            updateSelection(next);
-            applyStation(next);
-            hideTimeout = setTimeout(() => radioUi.classList.remove('active'), 1500);
+        if (now - lastClickTime < 300) { 
+            currentIdx = (currentIdx + 1) % stations.length; 
+            applyStation(currentIdx); 
+            radioUi.classList.add('active'); updateSelection(currentIdx);
+            setTimeout(() => radioUi.classList.remove('active'), 1000);
         }
         lastClickTime = now;
     }
@@ -333,22 +264,38 @@ window.addEventListener('mousedown', handleStart);
 window.addEventListener('mousemove', handleMove);
 window.addEventListener('mouseup', handleEnd);
 
-function requestPermissions() {
-    startTracking();
-    if ('wakeLock' in navigator) navigator.wakeLock.request('screen');
-    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission().then(res => { if (res === 'granted') window.addEventListener('deviceorientation', handleOrientation); });
-    } else { window.addEventListener('deviceorientation', handleOrientation); }
+// --- GPS Y ORIENTACIÓN (CORREGIDO) ---
+function startGPS() {
+    if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(pos => {
+            const { latitude, longitude } = pos.coords;
+            map.flyTo({ center: [longitude, latitude], speed: 0.8 });
+        }, err => console.error("Error GPS:", err), { enableHighAccuracy: true });
+    }
+
+    if (window.DeviceOrientationEvent) {
+        const orientEvent = (e) => {
+            const heading = e.webkitCompassHeading || (e.alpha ? 360 - e.alpha : 0);
+            map.setBearing(heading);
+            document.getElementById('north-orbit').style.transform = `rotate(${-heading}deg)`;
+        };
+
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            DeviceOrientationEvent.requestPermission().then(state => {
+                if (state === 'granted') window.addEventListener('deviceorientation', orientEvent);
+            });
+        } else {
+            window.addEventListener('deviceorientation', orientEvent);
+        }
+    }
 }
 
-document.body.addEventListener('click', requestPermissions, {once: true});
+// Activar todo al primer clic
+document.body.addEventListener('click', () => {
+    startGPS();
+    if ('wakeLock' in navigator) navigator.wakeLock.request('screen');
+}, { once: true });
 
-const geoOptions = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
-let smoothLat = null, smoothLng = null;
-const smoothing = 0.18;
-function smoothGPS(lat, lng) { if (smoothLat === null) { smoothLat = lat; smoothLng = lng; } else { smoothLat = smoothLat * (1 - smoothing) + lat * smoothing; smoothLng = smoothLng * (1 - smoothing) + lng * smoothing; } return [smoothLat, smoothLng]; }
-function startTracking() { navigator.geolocation.watchPosition(pos => { const [lat, lng] = smoothGPS(pos.coords.latitude, pos.coords.longitude); map.easeTo({ center: [lng, lat], duration: 900 }); }, null, geoOptions); }
-function handleOrientation(event) { let rawHeading = event.webkitCompassHeading || (event.alpha ? 360 - event.alpha : 0); map.setBearing(rawHeading); document.getElementById('north-orbit').style.transform = `rotate(${-rawHeading}deg)`; }
 </script>
 </body>
 </html>
