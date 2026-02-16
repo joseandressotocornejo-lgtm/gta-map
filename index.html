@@ -56,27 +56,12 @@
             z-index: 1;
         }
 
-        /* --- CONTENEDOR DE LA FLECHA CORREGIDA --- */
-        #player-fixed-container {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 45px;
-            height: 45px;
-            z-index: 10;
-            pointer-events: none;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        #player-arrow-svg {
-            width: 100%;
-            height: 100%;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
-            /* Rotamos 180 grados para que la punta blanca sea el frente */
-            transform: rotate(180deg); 
+        /* Estilo del marcador del jugador (Punto azul real) */
+        .user-marker {
+            width: 18px; height: 18px;
+            background: #1e90ff; border: 3px solid white;
+            border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.8);
+            z-index: 5;
         }
 
         #radio-ui {
@@ -95,16 +80,77 @@
             pointer-events: none;
             transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             border: 4px solid var(--gta-yellow);
+            box-sizing: border-box;
         }
 
-        #radio-ui.active { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        .station-icon-radial { position: absolute; width: 45px; height: 45px; transform: translate(-50%, -50%); filter: grayscale(1) opacity(0.4); transition: 0.2s; z-index: 101; }
-        .station-icon-radial.highlight { filter: grayscale(0) opacity(1); transform: translate(-50%, -50%) scale(1.4); }
-        #station-logo { width: 120px; height: 120px; object-fit: contain; }
-        #station-name { color: var(--gta-yellow); font-size: 1.1rem; text-transform: uppercase; font-family: 'Arial Black', sans-serif; margin-top: 10px; text-shadow: 2px 2px 0px black; text-align: center; width: 80%; }
+        #radio-ui.active {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
 
-        #north-orbit { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 20; pointer-events: none; }
-        #north { position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%); background: black; color: white; font-weight: bold; font-size: calc(var(--hud-size) * 0.05); padding: 1.5% 3.5%; border-radius: 100px; }
+        .station-icon-radial {
+            position: absolute;
+            width: 45px; height: 45px;
+            transform: translate(-50%, -50%);
+            transition: transform 0.2s, filter 0.2s;
+            filter: grayscale(1) opacity(0.4);
+            z-index: 101;
+        }
+
+        .station-icon-radial.highlight {
+            filter: grayscale(0) opacity(1);
+            transform: translate(-50%, -50%) scale(1.4);
+        }
+
+        #station-logo {
+            width: 120px; height: 120px;
+            object-fit: contain;
+            transition: transform 0.2s;
+        }
+
+        #station-name {
+            color: var(--gta-yellow);
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            font-family: 'Arial Black', sans-serif;
+            margin-top: 10px;
+            text-shadow: 2px 2px 0px black;
+            text-align: center;
+            max-width: 80%;
+        }
+
+        #noise {
+            position: absolute;
+            width: 100%; height: 100%;
+            background: url('https://media.giphy.com/media/oEI9uWUicGLeE/giphy.gif');
+            opacity: 0;
+            border-radius: 50%;
+            mix-blend-mode: screen;
+            pointer-events: none;
+        }
+
+        #north-orbit {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 20;
+            pointer-events: none;
+            transition: transform 0.1s linear;
+        }
+
+        #north {
+            position: absolute;
+            top: 0; left: 50%;
+            transform: translate(-50%, -50%);
+            background: black;
+            color: white;
+            font-weight: bold;
+            font-size: calc(var(--hud-size) * 0.05);
+            padding: 1.5% 3.5%;
+            border-radius: 100px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            white-space: nowrap;
+        }
     </style>
 </head>
 
@@ -114,15 +160,9 @@
     <div id="hud">
         <div id="map"></div>
         
-        <div id="player-fixed-container">
-            <svg id="player-arrow-svg" viewBox="0 0 34 50">
-                <path d="M17 2 C9 2 3 10 3 18 C3 30 17 45 17 45 C17 45 31 30 31 18 C31 10 25 2 17 2 Z" 
-                fill="white" stroke="black" stroke-width="3"/>
-            </svg>
-        </div>
-
         <div id="radio-ui">
-            <img id="station-logo" src="img/RadioOff.png" alt="logo">
+            <div id="noise"></div>
+            <img id="station-logo" src="img/RadioOff.png" alt="radio">
             <div id="station-name">RADIO OFF</div>
         </div>
     </div>
@@ -132,27 +172,45 @@
     </div>
 </div>
 
-<audio id="radio-audio" loop></audio>
+<audio id="radio-audio" preload="metadata" loop></audio>
 <audio id="static-sfx" src="https://www.soundjay.com/tv-and-radio/static-radio-01.mp3"></audio>
 <audio id="menu-sfx" src="img/gta-sa-menu.mp3"></audio>
 
 <script>
 // --- 1. CONFIGURACIÓN DE MAPA ---
+const paleta = { agua: '#7088b0', tierra_general: '#38692d', urbano: '#989898', parques: '#788c40', edificios: '#FFFFFF', calles_negras: '#000000', senderos_marron: '#A78C6A' };
 const map = new maplibregl.Map({ 
     container: 'map', 
     style: 'https://tiles.openfreemap.org/styles/bright', 
     center: [-70.6483, -33.4569], 
     zoom: 17.5, 
+    pitch: 0, 
+    bearing: 0, 
     attributionControl: false, 
     interactive: false 
 });
 
+// Marcador del Jugador
+const elMarker = document.createElement('div');
+elMarker.className = 'user-marker';
+const marker = new maplibregl.Marker({element: elMarker}).setLngLat([-70.6483, -33.4569]).addTo(map);
+
 map.on('style.load', () => {
-    map.setPaintProperty('background', 'background-color', '#38692d');
-    if (map.getLayer('building')) map.setPaintProperty('building', 'fill-color', '#ffffff');
+    map.setPaintProperty('background', 'background-color', paleta.tierra_general);
+    if (map.getLayer('building')) { map.setPaintProperty('building', 'fill-color', paleta.edificios); map.setPaintProperty('building', 'fill-outline-color', '#000000'); }
+    map.getStyle().layers.forEach(layer => {
+        if (map.getLayer('water')) map.setPaintProperty('water', 'fill-color', paleta.agua);
+        if (map.getLayer('park')) map.setPaintProperty('park', 'fill-color', paleta.parques);
+        const esVia = layer.id.includes('highway') || layer.id.includes('bridge') || layer.id.includes('tunnel');
+        if (layer.type === 'line' && esVia) {
+            const esSendero = layer.id.includes('path') || layer.id.includes('footway') || layer.id.includes('track');
+            if (esSendero) { map.setPaintProperty(layer.id, 'line-color', paleta.senderos_marron); map.setPaintProperty(layer.id, 'line-width', 3); }
+            else { map.setPaintProperty(layer.id, 'line-color', paleta.calles_negras); map.setPaintProperty(layer.id, 'line-width', ['interpolate', ['linear'], ['zoom'], 14, 2, 18, 10]); }
+        }
+    });
 });
 
-// --- 2. RADIO ---
+// --- 2. CONFIGURACIÓN DE RADIO ---
 const stations = [
     { name: "Radio Off", logo: "img/RadioOff.png", file: "", duration: 0 },
     { name: "Bounce FM", logo: "img/BounceFM.png", file: "https://www.dropbox.com/scl/fi/ca7wu3m85r58rgbv9pd7g/Bounce-FM.ogg?rlkey=v7qw43n1h981dcomxfjpve96v&st=5gx1zfuf&raw=1", duration: 3902 },
@@ -188,7 +246,7 @@ function applyStation(idx) {
         audio.src = s.file;
         audio.onloadedmetadata = () => { 
             audio.currentTime = Math.floor(Date.now() / 1000) % s.duration; 
-            audio.play().catch(e => {}); 
+            audio.play().catch(e => console.log("Clic para activar")); 
         };
         audio.load();
     } else { audio.src = ""; }
@@ -203,7 +261,7 @@ function updateSelection(idx) {
     staticSfx.currentTime = 0; staticSfx.play();
 }
 
-// --- 3. INTERACCIÓN ---
+// --- 3. LÓGICA DE INTERACCIÓN ---
 const handleStart = (e) => {
     if(e.type === 'touchstart') e.preventDefault();
     clearTimeout(hideTimeout);
@@ -241,14 +299,21 @@ window.addEventListener('mousedown', handleStart);
 window.addEventListener('mousemove', handleMove);
 window.addEventListener('mouseup', handleEnd);
 
-// --- 4. GPS Y BRÚJULA ---
+// --- 4. GPS Y PERMISOS ---
 function initSystem() {
+    // WakeLock para que no se apague la pantalla
+    if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(()=>{});
+
+    // Iniciar Rastreo GPS
     if (navigator.geolocation) {
         navigator.geolocation.watchPosition(pos => {
-            map.easeTo({ center: [pos.coords.longitude, pos.coords.latitude], duration: 1000 });
-        }, null, { enableHighAccuracy: true });
+            const { latitude, longitude } = pos.coords;
+            marker.setLngLat([longitude, latitude]);
+            map.easeTo({ center: [longitude, latitude], duration: 1000 });
+        }, (err) => alert("Error GPS: " + err.message), { enableHighAccuracy: true, maximumAge: 0 });
     }
 
+    // Iniciar Brújula
     const handleOrient = (e) => {
         const heading = e.webkitCompassHeading || (e.alpha ? 360 - e.alpha : 0);
         map.setBearing(heading);
@@ -260,6 +325,7 @@ function initSystem() {
     } else { window.addEventListener('deviceorientation', handleOrient); }
 }
 
+// Activar al primer toque
 document.body.addEventListener('click', initSystem, {once: true});
 </script>
 </body>
