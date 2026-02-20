@@ -4,7 +4,6 @@
     --gta-yellow: #f9ca24; 
 }
 
-/* Blindaje de pantalla completa */
 html, body {
     overscroll-behavior: none;
     overflow: hidden;
@@ -19,12 +18,12 @@ body {
     touch-action: none; user-select: none; -webkit-user-select: none;
 }
 
-/* Pantalla de Inicio con Botón Invisible */
+/* Pantalla de Inicio con imagen de fondo */
 #start-overlay {
     position: fixed;
     top: 0; left: 0;
     width: 100vw; height: 100vh;
-    /* Usamos tu imagen de fondo directamente */
+    /* RUTA CORREGIDA: Asegúrate de que el archivo esté en la carpeta img */
     background: url('img/menu-bg.jpg') no-repeat center center;
     background-size: cover;
     z-index: 9999;
@@ -34,22 +33,18 @@ body {
 }
 
 #start-btn {
-    /* Hacemos el botón invisible */
-    background: transparent;
+    background: transparent; /* Botón invisible */
     border: none;
     outline: none;
     cursor: pointer;
     
-    /* Dimensiones para cubrir el área de "INICIAR PARTIDA" */
-    width: 80%;
-    max-width: 400px;
-    height: 100px;
+    /* Área táctil ajustada al centro de la imagen */
+    width: 70%;
+    max-width: 350px;
+    height: 80px;
     
-    /* Posicionamiento: Ajustado para que caiga sobre el texto de la imagen */
-    margin-top: 50px; 
-    
-    /* Para debug: descomenta la línea de abajo si quieres ver dónde está el área de click */
-    /* border: 2px solid red; */
+    /* Ajuste de posición vertical para coincidir con "INICIAR PARTIDA" */
+    margin-top: 20px; 
 }
 
 /* HUD y Mapa */
@@ -76,16 +71,13 @@ body {
     z-index: 10;
 }
 
-/* Norte "N" en el borde */
 #north-orbit { 
     position: absolute; top: 0; left: 0;
     width: 100%; height: 100%; z-index: 20; pointer-events: none; 
 }
 
 #north { 
-    position: absolute; 
-    top: -21px; /* Centrado en el borde negro */
-    left: 50%; 
+    position: absolute; top: -21px; left: 50%; 
     transform: translateX(-50%); 
     background: black; color: white; 
     font-weight: bold; font-size: 20px; 
@@ -93,7 +85,6 @@ body {
     font-family: Arial, sans-serif;
 }
 
-/* Radio UI */
 #radio-ui {
     position: absolute; top: 50%; left: 50%; 
     transform: translate(-50%, -50%) scale(0.8);
