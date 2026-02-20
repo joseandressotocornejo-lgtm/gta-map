@@ -5,37 +5,37 @@
     --gta-blue-text: #d1e2f3;
 }
 
-/* BLINDAJE PARA MÓVIL (Sin scroll ni zoom) */
+/* Configuración de Fuentes Solicitadas */
+@font-face {
+    font-family: 'Beckett';
+    src: local('Beckett'), local('Beckett Regular');
+}
+
+@font-face {
+    font-family: 'BankGothic';
+    src: local('Bank Gothic'), local('BankGothic Md BT');
+}
+
+/* Reset y Blindaje para Celular */
 html, body {
     overscroll-behavior: none;
     overflow: hidden;
     position: fixed;
-    width: 100%;
-    height: 100%;
+    width: 100%; height: 100%;
     margin: 0; padding: 0;
     background: #1a3315; 
-    font-family: Arial, sans-serif;
 }
 
 body { 
-    display: flex; 
-    justify-content: center; 
-    align-items: center; 
-    touch-action: none; 
-    user-select: none;
-    -webkit-user-select: none;
+    display: flex; justify-content: center; align-items: center; 
+    touch-action: none; user-select: none; -webkit-user-select: none;
 }
 
-/* PANTALLA DE INICIO (OVERLAY) */
+/* Pantalla de Inicio (Overlay) */
 #start-overlay {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100vw; height: 100vh;
-    background: black;
-    z-index: 9999;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: black; z-index: 9999;
+    display: flex; justify-content: center; align-items: center;
 }
 
 #menu-title {
@@ -43,21 +43,18 @@ body {
     top: 10%;
     left: 8%;
     color: #fff;
-    font-size: clamp(2rem, 8vw, 3.5rem);
-    font-weight: normal;
-    /* Simulación de fuente gótica/clásica */
-    font-family: 'Old English Text MT', serif; 
-    text-shadow: 3px 3px 0px rgba(255,255,255,0.1);
+    /* Fuente Beckett Regular */
+    font-family: 'Beckett', 'Old English Text MT', serif; 
+    font-size: clamp(2.5rem, 9vw, 4.5rem);
 }
 
 #start-btn {
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.8);
     border: 3px solid #ffffff;
     padding: 12px 35px;
-    display: flex;
-    align-items: center;
+    display: flex; align-items: center;
     cursor: pointer;
-    /* Efecto Glow Blanco de tu imagen */
+    /* Resplandor blanco (Glow) */
     box-shadow: 0 0 20px #ffffff, inset 0 0 10px rgba(255,255,255,0.2);
     transition: transform 0.1s;
 }
@@ -65,31 +62,27 @@ body {
 #start-btn:active { transform: scale(0.96); }
 
 .gta-cross {
-    width: 45px;
-    height: 45px;
+    width: 45px; height: 45px;
     margin-right: 20px;
     filter: drop-shadow(0 0 5px #fff);
 }
 
 .btn-text {
     color: var(--gta-blue-text);
-    font-family: 'Arial Black', sans-serif;
-    font-size: clamp(1.2rem, 5vw, 1.8rem);
-    font-weight: 900;
+    /* Fuente Bank Gothic */
+    font-family: 'BankGothic', 'Arial Black', sans-serif;
+    font-size: clamp(1.1rem, 4.5vw, 1.7rem);
+    font-weight: bold;
     letter-spacing: 3px;
     text-transform: uppercase;
     border-left: 2px solid rgba(255,255,255,0.4);
     padding-left: 20px;
 }
 
-/* CONTENEDOR DEL HUD (MAPA GIGANTE) */
+/* HUD y Contenedor del Mapa */
 #wrapper { 
-    position: relative; 
-    width: var(--hud-size); 
-    height: var(--hud-size); 
-    max-width: var(--max-size); 
-    max-height: var(--max-size); 
-    visibility: hidden; 
+    position: relative; width: var(--hud-size); height: var(--hud-size); 
+    max-width: var(--max-size); max-height: var(--max-size); visibility: hidden; 
 }
 
 #hud { 
@@ -108,7 +101,7 @@ body {
     z-index: 10;
 }
 
-/* LOGICA DE LA N SOBRE EL BORDE */
+/* Indicador del Norte (N) */
 #north-orbit { 
     position: absolute; top: 0; left: 0;
     width: 100%; height: 100%; z-index: 20; pointer-events: none; 
@@ -116,16 +109,17 @@ body {
 
 #north { 
     position: absolute; 
-    top: -21px; /* Ajustado para quedar 50/50 en borde de 8px */
+    /* Calibrado para estar exactamente 50/50 sobre el borde */
+    top: -21px; 
     left: 50%; 
     transform: translateX(-50%); 
     background: black; color: white; 
     font-weight: bold; font-size: 20px; 
     padding: 6px 14px; border-radius: 20px; 
-    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    font-family: Arial, sans-serif;
 }
 
-/* RADIO UI */
+/* UI de Radio */
 #radio-ui {
     position: absolute; top: 50%; left: 50%; 
     transform: translate(-50%, -50%) scale(0.8);
@@ -152,4 +146,5 @@ body {
 #station-name { 
     color: var(--gta-yellow); font-size: 1.2rem; text-transform: uppercase; 
     margin-top: 15px; text-shadow: 2px 2px 0px black; font-weight: bold; 
+    font-family: 'BankGothic', sans-serif;
 }
