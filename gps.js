@@ -45,24 +45,53 @@ map.on('style.load', () => {
 
 // --- LÓGICA DE PERMISOS Y SENSORES ---
 function requestPermissions() {
-    startTracking();
-    if ('wakeLock' in navigator) navigator.wakeLock.request('screen');
-    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission().then(res => { 
-            if (res === 'granted') window.addEventListener('deviceorientation', handleOrientation); 
+    console.log("Solicitando permisos de ubicación y sensores...");
+
+    // 1. Intentar obtener ubicación actual inmediatamente
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            console.log("Ubicación obtenida con éxito");
+            const [lat, lng] = smoothGPS(pos.coords.latitude, pos.coords.longitude);
+            map.jumpTo({ center: [lng, lat] });
+            startTracking(); // Si funciona el fix inicial, activamos el seguimiento
+        },
+        (err) => {
+            console.error("Error de Geolocalización:", err.code, err.message);
+            alert("Error de GPS: " + err.message + "\n\nVerifica que estés usando HTTPS y tengas el GPS activo.");
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+    );
+
+    // 2. Bloqueo de pantalla (WakeLock)
+    if ('wakeLock' in navigator) {
+        navigator.wakeLock.request('screen').catch(() => {
+            console.log("WakeLock no disponible");
         });
+    }
+
+    // 3. Permisos de Orientación (Especialmente para iOS/iPhone)
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission()
+            .then(res => { 
+                if (res === 'granted') {
+                    window.addEventListener('deviceorientation', handleOrientation); 
+                } else {
+                    alert("Permiso de brújula denegado.");
+                }
+            })
+            .catch(console.error);
     } else { 
         window.addEventListener('deviceorientation', handleOrientation); 
     }
 }
 
-// Iniciar al primer click en la pantalla
+// Iniciar al primer click en el cuerpo del documento
 document.body.addEventListener('click', requestPermissions, {once: true});
 
 // --- GEOLOCALIZACIÓN SUAVIZADA ---
 const geoOptions = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
 let smoothLat = null, smoothLng = null;
-const smoothing = 0.18; // Menor valor = más suave, pero más retraso
+const smoothing = 0.18; 
 
 function smoothGPS(lat, lng) { 
     if (smoothLat === null) { 
@@ -78,12 +107,21 @@ function smoothGPS(lat, lng) {
 function startTracking() { 
     navigator.geolocation.watchPosition(pos => { 
         const [lat, lng] = smoothGPS(pos.coords.latitude, pos.coords.longitude); 
-        map.easeTo({ center: [lng, lat], duration: 900 }); 
-    }, null, geoOptions); 
+        map.easeTo({ 
+            center: [lng, lat], 
+            duration: 900,
+            essential: true 
+        }); 
+    }, (err) => {
+        console.warn("WatchPosition perdió la señal:", err.message);
+    }, geoOptions); 
 }
 
 function handleOrientation(event) { 
     let rawHeading = event.webkitCompassHeading || (event.alpha ? 360 - event.alpha : 0); 
-    map.setBearing(rawHeading); 
-    document.getElementById('north-orbit').style.transform = `rotate(${-rawHeading}deg)`; 
+    if (rawHeading !== null) {
+        map.setBearing(rawHeading); 
+        const orbit = document.getElementById('north-orbit');
+        if (orbit) orbit.style.transform = `rotate(${-rawHeading}deg)`; 
+    }
 }
