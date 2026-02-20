@@ -2,35 +2,87 @@
     --hud-size: 98vw; 
     --max-size: 500px; 
     --gta-yellow: #f9ca24; 
+    --gta-blue-text: #d1e2f3;
 }
 
-body { 
-    margin: 0; 
-    padding: 0;
+/* BLINDAJE PARA MÓVIL (Sin scroll ni zoom) */
+html, body {
+    overscroll-behavior: none;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    margin: 0; padding: 0;
     background: #1a3315; 
-    display: flex; 
-    justify-content: center; 
-    align-items: center; 
-    height: 100vh; 
-    overflow: hidden; 
-    touch-action: none; /* Bloquea el zoom del navegador */
-    user-select: none; /* Evita que se seleccione texto al tocar */
-    overscroll-behavior: none; /* Evita "pull to refresh" en Android */
     font-family: Arial, sans-serif;
 }
 
+body { 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    touch-action: none; 
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* PANTALLA DE INICIO (OVERLAY) */
 #start-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-    background: #000; z-index: 9999; 
-    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: black;
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#menu-title {
+    position: absolute;
+    top: 10%;
+    left: 8%;
+    color: #fff;
+    font-size: clamp(2rem, 8vw, 3.5rem);
+    font-weight: normal;
+    /* Simulación de fuente gótica/clásica */
+    font-family: 'Old English Text MT', serif; 
+    text-shadow: 3px 3px 0px rgba(255,255,255,0.1);
 }
 
 #start-btn {
-    background: var(--gta-yellow); color: black; border: 4px solid #fff; 
-    padding: 20px 50px; font-size: 1.8rem; font-weight: bold; 
-    border-radius: 10px; cursor: pointer; font-family: 'Arial Black', sans-serif;
+    background: rgba(0, 0, 0, 0.7);
+    border: 3px solid #ffffff;
+    padding: 12px 35px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    /* Efecto Glow Blanco de tu imagen */
+    box-shadow: 0 0 20px #ffffff, inset 0 0 10px rgba(255,255,255,0.2);
+    transition: transform 0.1s;
 }
 
+#start-btn:active { transform: scale(0.96); }
+
+.gta-cross {
+    width: 45px;
+    height: 45px;
+    margin-right: 20px;
+    filter: drop-shadow(0 0 5px #fff);
+}
+
+.btn-text {
+    color: var(--gta-blue-text);
+    font-family: 'Arial Black', sans-serif;
+    font-size: clamp(1.2rem, 5vw, 1.8rem);
+    font-weight: 900;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    border-left: 2px solid rgba(255,255,255,0.4);
+    padding-left: 20px;
+}
+
+/* CONTENEDOR DEL HUD (MAPA GIGANTE) */
 #wrapper { 
     position: relative; 
     width: var(--hud-size); 
@@ -51,24 +103,29 @@ body {
 
 #player {
     position: absolute; top: 50%; left: 50%;
-    width: 28px; height: 44px;
+    width: 30px; height: 48px;
     transform: translate(-50%, -50%) rotate(180deg);
     z-index: 10;
 }
 
+/* LOGICA DE LA N SOBRE EL BORDE */
 #north-orbit { 
     position: absolute; top: 0; left: 0;
     width: 100%; height: 100%; z-index: 20; pointer-events: none; 
 }
 
 #north { 
-    position: absolute; top: -19px; left: 50%; 
+    position: absolute; 
+    top: -21px; /* Ajustado para quedar 50/50 en borde de 8px */
+    left: 50%; 
     transform: translateX(-50%); 
     background: black; color: white; 
     font-weight: bold; font-size: 20px; 
     padding: 6px 14px; border-radius: 20px; 
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
 }
 
+/* RADIO UI */
 #radio-ui {
     position: absolute; top: 50%; left: 50%; 
     transform: translate(-50%, -50%) scale(0.8);
