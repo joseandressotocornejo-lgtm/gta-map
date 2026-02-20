@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>HUD GPS & Radio SA</title>
+    <title>GPS San Andreas - Full Screen</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <script src='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js'></script>
     <link href='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css' rel='stylesheet' />
@@ -11,24 +11,28 @@
 <body>
 
 <div id="start-overlay">
-    <h1 style="font-family: 'Arial Black'; color: #f9ca24; margin-bottom: 5px;">SAN ANDREAS</h1>
-    <p style="margin-bottom: 25px; color: white;">SISTEMA GPS Y RADIO</p>
+    <h1 style="font-family: 'Arial Black'; color: #f9ca24; margin-bottom: 5px; text-align: center;">SAN ANDREAS</h1>
+    <p style="margin-bottom: 25px; color: white;">GPS & RADIO SYSTEM</p>
     <button id="start-btn">INICIAR</button>
 </div>
 
 <div id="wrapper">
     <div id="hud">
         <div id="map"></div>
-        <svg id="player" viewBox="0 0 34 50">
-            <path d="M17 2 C9 2 3 10 3 18 C3 30 17 45 17 45 C17 45 31 30 31 18 C31 10 25 2 17 2 Z" fill="white" stroke="black" stroke-width="4"/>
+        <svg id="player" viewBox="0 0 34 60">
+            <path d="M17 2 C9 2 3 10 3 18 C3 34 17 58 17 58 C17 58 31 34 31 18 C31 10 25 2 17 2 Z" fill="white" stroke="black" stroke-width="5"/>
         </svg>
-        <div id="radio-ui">
-            <div id="noise"></div>
-            <img id="station-logo" src="img/RadioOff.png" style="width:110px">
-            <div id="station-name">RADIO OFF</div>
-        </div>
     </div>
-    <div id="north-orbit"><div id="north">N</div></div>
+
+    <div id="north-orbit">
+        <div id="north">N</div>
+    </div>
+
+    <div id="radio-ui">
+        <div id="noise"></div>
+        <img id="station-logo" src="img/RadioOff.png" style="width:120px">
+        <div id="station-name">RADIO OFF</div>
+    </div>
 </div>
 
 <audio id="radio-audio" loop></audio>
@@ -40,4 +44,3 @@
 
 </body>
 </html>
-
