@@ -1,9 +1,11 @@
-// --- PALETA DE COLORES ---
 const paleta = {
     agua: '#7088b0',
     tierra_general: '#38692d',
+    tierra_natural: '#386c28',
+    urbano: '#989898',
+    parques: '#788c40',
     edificios: '#FFFFFF',
-    calles_negras: '#000000', // El color que no se estaba aplicando
+    calles_negras: '#000000',
     senderos_marron: '#A78C6A',
     texto_suave: '#E0E0E0'
 };
@@ -18,61 +20,58 @@ const map = new maplibregl.Map({
 });
 
 map.on('style.load', () => {
-    // 1. Color de fondo (Tierra)
-    map.setPaintProperty('background', 'background-color', paleta.tierra_general);
-
-    // 2. Forzar colores en todas las capas
-    const layers = map.getStyle().layers;
-    
-    layers.forEach(layer => {
-        // PINTAR AGUA
-        if (layer.id.includes('water')) {
-            map.setPaintProperty(layer.id, 'fill-color', paleta.agua);
-        }
-
-        // PINTAR EDIFICIOS
-        if (layer.id.includes('building')) {
-            map.setPaintProperty(layer.id, 'fill-color', paleta.edificios);
-            map.setPaintProperty(layer.id, 'fill-outline-color', '#000000');
-        }
-
-        // PINTAR CALLES (Aquí estaba el fallo)
-        // Buscamos cualquier capa que sea una línea y que tenga relación con caminos
-        if (layer.type === 'line') {
-            const esCamino = layer['source-layer'] === 'transportation' || 
-                             layer.id.includes('road') || 
-                             layer.id.includes('highway') || 
-                             layer.id.includes('track');
-
-            if (esCamino) {
-                const esSendero = layer.id.includes('path') || layer.id.includes('footway');
-                
-                map.setPaintProperty(layer.id, 'line-color', esSendero ? paleta.senderos_marron : paleta.calles_negras);
-                map.setPaintProperty(layer.id, 'line-opacity', 1);
-                
-                // Grosor de calle estilo GTA
-                map.setPaintProperty(layer.id, 'line-width', [
-                    'interpolate', ['linear'], ['zoom'],
-                    12, 2,
-                    16, 8
-                ]);
+    // 1. ETIQUETAS DISCRETAS (Tu código exacto)
+    map.getStyle().layers.forEach(layer => {
+        if (layer.type === 'symbol') {
+            map.setLayoutProperty(layer.id, 'visibility', 'visible');
+            if (layer.layout && layer.layout['text-field']) {
+                map.setLayoutProperty(layer.id, 'text-size', 11);
+                map.setPaintProperty(layer.id, 'text-color', paleta.texto_suave);
+                map.setPaintProperty(layer.id, 'text-halo-color', 'rgba(0,0,0,0.5)');
+                map.setPaintProperty(layer.id, 'text-halo-width', 1);
+                map.setPaintProperty(layer.id, 'text-opacity', ['interpolate', ['linear'], ['zoom'], 13, 0, 14, 0.8]);
             }
         }
+    });
 
-        // TEXTOS SUAVES
-        if (layer.type === 'symbol') {
-            map.setPaintProperty(layer.id, 'text-color', paleta.texto_suave);
+    // 2. COLORES DE FONDO
+    map.setPaintProperty('background', 'background-color', paleta.tierra_general);
+    if (map.getLayer('water')) map.setPaintProperty('water', 'fill-color', paleta.agua);
+    if (map.getLayer('park')) map.setPaintProperty('park', 'fill-color', paleta.parques);
+    if (map.getLayer('landcover_wood')) map.setPaintProperty('landcover_wood', 'fill-color', paleta.tierra_natural);
+
+    if (map.getLayer('building')) {
+        map.setPaintProperty('building', 'fill-color', paleta.edificios);
+        map.setPaintProperty('building', 'fill-outline-color', '#000000');
+    }
+
+    // 3. CALLES NEGRAS (Tu lógica de filtrado por IDs)
+    map.getStyle().layers.forEach(layer => {
+        const esVia = layer.id.includes('highway') || layer.id.includes('bridge') || layer.id.includes('tunnel');
+        if (layer.type === 'line' && esVia) {
+            const esSendero = layer.id.includes('path') || layer.id.includes('footway') || layer.id.includes('track');
+            if (esSendero) {
+                map.setPaintProperty(layer.id, 'line-color', paleta.senderos_marron);
+                map.setPaintProperty(layer.id, 'line-width', 2);
+            } else {
+                map.setPaintProperty(layer.id, 'line-color', paleta.calles_negras);
+                map.setPaintProperty(layer.id, 'line-opacity', 1);
+                map.setPaintProperty(layer.id, 'line-width', ['interpolate', ['linear'], ['zoom'], 12, 1.2, 16, 5]);
+            }
         }
     });
 });
 
-// --- LÓGICA DE GPS (SE MANTIENE IGUAL PORQUE FUNCIONA) ---
+// --- LÓGICA DE ARRANQUE GPS ---
 let smoothLat = null, smoothLng = null;
 const smoothing = 0.2;
 
 document.getElementById('start-btn').addEventListener('click', async function() {
     document.getElementById('start-overlay').style.display = 'none';
     document.getElementById('wrapper').style.visibility = 'visible';
+    
+    document.getElementById('menu-sfx').play().catch(() => {});
+    if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(()=>{});
 
     if (navigator.geolocation) {
         navigator.geolocation.watchPosition(pos => {
