@@ -19,50 +19,56 @@ const map = new maplibregl.Map({
     interactive: false 
 });
 
-map.on('style.load', () => {
-    // 1. ETIQUETAS DISCRETAS (Tu código exacto)
-    map.getStyle().layers.forEach(layer => {
-        if (layer.type === 'symbol') {
-            map.setLayoutProperty(layer.id, 'visibility', 'visible');
-            if (layer.layout && layer.layout['text-field']) {
-                map.setLayoutProperty(layer.id, 'text-size', 11);
-                map.setPaintProperty(layer.id, 'text-color', paleta.texto_suave);
-                map.setPaintProperty(layer.id, 'text-halo-color', 'rgba(0,0,0,0.5)');
-                map.setPaintProperty(layer.id, 'text-halo-width', 1);
-                map.setPaintProperty(layer.id, 'text-opacity', ['interpolate', ['linear'], ['zoom'], 13, 0, 14, 0.8]);
-            }
-        }
-    });
+// Función maestra de pintura para asegurar que se aplique sí o sí
+function aplicarColoresGTA() {
+    const style = map.getStyle();
+    if (!style) return;
 
-    // 2. COLORES DE FONDO
-    map.setPaintProperty('background', 'background-color', paleta.tierra_general);
+    // 1. Fondo y capas base
+    if (map.getLayer('background')) map.setPaintProperty('background', 'background-color', paleta.tierra_general);
     if (map.getLayer('water')) map.setPaintProperty('water', 'fill-color', paleta.agua);
-    if (map.getLayer('park')) map.setPaintProperty('park', 'fill-color', paleta.parques);
-    if (map.getLayer('landcover_wood')) map.setPaintProperty('landcover_wood', 'fill-color', paleta.tierra_natural);
+    
+    style.layers.forEach(layer => {
+        // 2. ETIQUETAS
+        if (layer.type === 'symbol' && layer.layout && layer.layout['text-field']) {
+            map.setPaintProperty(layer.id, 'text-color', paleta.texto_suave);
+            map.setPaintProperty(layer.id, 'text-halo-color', 'rgba(0,0,0,0.5)');
+            map.setPaintProperty(layer.id, 'text-halo-width', 1);
+        }
 
-    if (map.getLayer('building')) {
-        map.setPaintProperty('building', 'fill-color', paleta.edificios);
-        map.setPaintProperty('building', 'fill-outline-color', '#000000');
-    }
+        // 3. CALLES (Tu código exacto con una mejora de detección)
+        const esVia = layer.id.includes('highway') || layer.id.includes('bridge') || layer.id.includes('tunnel') || layer.id.includes('road');
 
-    // 3. CALLES NEGRAS (Tu lógica de filtrado por IDs)
-    map.getStyle().layers.forEach(layer => {
-        const esVia = layer.id.includes('highway') || layer.id.includes('bridge') || layer.id.includes('tunnel');
         if (layer.type === 'line' && esVia) {
             const esSendero = layer.id.includes('path') || layer.id.includes('footway') || layer.id.includes('track');
+
             if (esSendero) {
                 map.setPaintProperty(layer.id, 'line-color', paleta.senderos_marron);
                 map.setPaintProperty(layer.id, 'line-width', 2);
             } else {
+                // AQUÍ SE FUERZA EL NEGRO
                 map.setPaintProperty(layer.id, 'line-color', paleta.calles_negras);
                 map.setPaintProperty(layer.id, 'line-opacity', 1);
-                map.setPaintProperty(layer.id, 'line-width', ['interpolate', ['linear'], ['zoom'], 12, 1.2, 16, 5]);
+                map.setPaintProperty(layer.id, 'line-width', [
+                    'interpolate', ['linear'], ['zoom'],
+                    12, 1.5,
+                    16, 6
+                ]);
             }
         }
-    });
-});
 
-// --- LÓGICA DE ARRANQUE GPS ---
+        // 4. EDIFICIOS
+        if (layer.id.includes('building')) {
+            map.setPaintProperty(layer.id, 'fill-color', paleta.edificios);
+            map.setPaintProperty(layer.id, 'fill-outline-color', '#000000');
+        }
+    });
+}
+
+// Escuchar cuando el estilo cargue
+map.on('style.load', aplicarColoresGTA);
+
+// --- LÓGICA DE GPS ---
 let smoothLat = null, smoothLng = null;
 const smoothing = 0.2;
 
@@ -70,8 +76,8 @@ document.getElementById('start-btn').addEventListener('click', async function() 
     document.getElementById('start-overlay').style.display = 'none';
     document.getElementById('wrapper').style.visibility = 'visible';
     
-    document.getElementById('menu-sfx').play().catch(() => {});
-    if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(()=>{});
+    // Re-aplicar colores por si acaso al iniciar
+    aplicarColoresGTA();
 
     if (navigator.geolocation) {
         navigator.geolocation.watchPosition(pos => {
@@ -90,6 +96,7 @@ document.getElementById('start-btn').addEventListener('click', async function() 
         map.setBearing(heading);
         document.getElementById('north-orbit').style.transform = `rotate(${-heading}deg)`;
     };
+    
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission().then(res => {
             if (res === 'granted') window.addEventListener('deviceorientation', handleOrient);
