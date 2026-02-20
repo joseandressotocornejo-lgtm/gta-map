@@ -1,135 +1,43 @@
-# 📍 GTA-Map
+# 🗺️ GTA SA HUD - GPS Interactivo
 
-Proyecto web para mostrar un *mapa interactivo estilo Grand Theft Auto* con GPS y sistema de radio inspirado en GTA.
+Un visor de mapas interactivo basado en la interfaz de usuario (HUD) de **Grand Theft Auto: San Andreas**. Esta aplicación utiliza la ubicación en tiempo real (GPS) del usuario para centrar el mapa, con una estética visual fiel al juego original y un sistema de radio funcional.
 
-Este proyecto utiliza **mapas vectoriales (MapLibre/tiles)**, integración de geolocalización del navegador y un menú de radio con emisoras clásicas de GTA.
+## ✨ Características Principales
 
----
+* **Estética GTA SA:** Interfaz diseñada con fuentes clásicas (`Beckett` y `BankGothic`) y el icónico borde circular del minimapa.
+* **GPS en Tiempo Real:** Seguimiento de ubicación con suavizado de movimiento (*smoothing*) para una navegación fluida.
+* **Brújula Dinámica:** El mapa y el marcador del Norte (N) rotan automáticamente según la orientación del dispositivo.
+* **Sistema de Radio Radial:** Menú interactivo con 13 estaciones originales (Bounce FM, K-DST, Radio Los Santos, etc.) que se sincronizan con el tiempo real.
+* **Wake Lock Integrado:** La pantalla del dispositivo se mantiene encendida automáticamente mientras la aplicación está en uso.
+* **Estilo Visual Personalizado:** Mapa renderizado con colores personalizados para simular el terreno, agua y edificios del estilo GTA.
 
-## 🧩 Características
+## 🛠️ Tecnologías
 
-✅ Mapa interactivo al estilo GTA con colores personalizados
-✅ Navegación GPS usando geolocalización del navegador
-✅ Soporte de orientación (brújula) en dispositivos móviles
-✅ Menú de radio con varias emisoras recreadas (con audio)
-✅ Interfaz responsive para móviles y desktop
+* **MapLibre GL JS:** Motor de renderizado de mapas.
+* **OpenFreeMap:** Proveedor de estilos y tiles de mapa.
+* **Screen Wake Lock API:** Para prevenir el modo suspensión del dispositivo.
+* **Device Orientation API:** Para la rotación basada en el hardware del celular.
 
----
+## 📦 Estructura del Proyecto
 
-## 🚀 Demo
+* `index.html`: Estructura base y carga de recursos.
+* `gps.js`: Lógica del mapa, estilos de capas, GPS y gestión del Wake Lock.
+* `radio.js`: Motor de audio y lógica del menú radial de estaciones.
+* `style.css`: Definición visual del HUD, animaciones y fuentes.
+* `manifest.json`: Configuración de PWA para instalación en móviles.
 
----
+## 🚀 Instalación y Uso
 
-## 🗂️ Estructura del proyecto
+1. Clona el repositorio o descarga los archivos.
+2. Asegúrate de contar con una conexión a internet (para cargar los mapas de MapLibre).
+3. **Nota Importante:** Debido a las políticas de seguridad de los navegadores, las funciones de GPS y Wake Lock requieren que el sitio se ejecute bajo **HTTPS** o en **localhost**.
 
-```
-/
-├─ img/                  # Iconos y logos de radio
-├─ gps.js                # Lógica de mapa y GPS
-├─ radio.js              # Lógica del menú de radio
-├─ index.html            # HTML base
-├─ style.css             # Estilos de UI
-├─ manifest.json         # Config para PWA (si aplica)
-```
+## 🎮 Controles de Radio
 
----
-
-## 🗺️ Mapa
-
-Se usa **MapLibre GL JS** con un estilo basado en OpenStreetMap u otro servicio tile compatible.
-
-En `gps.js` se configura el mapa con:
-
-* **Paleta de colores personalizada**
-* Colores para calles, edificios y agua
-* Zoom y centro inicial
-* Adaptación de estilo basado en capas
-
-El mapa no es específico de GTA (no incluye el mapa real de Los Santos), sino estilizado para dar una sensación de navegación con GPS real.
-
-```js
-const map = new maplibregl.Map({
-  container: 'map',
-  style: 'https://tiles.openfreemap.org/styles/bright',
-  center: [-70.6483, -33.4569],
-  zoom: 17,
-  attributionControl: false,
-  interactive: false
-});
-```
+* **Mantener Presionado:** Abre el menú radial para seleccionar una emisora.
+* **Doble Toque:** Cambia a la siguiente estación.
+* **Triple Toque:** Cambia a la estación anterior.
 
 ---
 
-## 📍 Funcionalidad GPS
-
-Al iniciar:
-
-1. Se oculta el overlay de inicio.
-2. Se muestra el mapa.
-3. Se solicita geolocalización del usuario.
-4. El mapa se centra y rota según orientación del dispositivo.
-
-*(Esto hace que el mapa parezca un GPS real de GTA.)*
-
----
-
-## 🎧 Menú de Radio
-
-El archivo `radio.js` contiene un listado de estaciones con:
-
-| Nombre    | Logo             | Archivo de audio |
-| --------- | ---------------- | ---------------- |
-| Radio Off | img/RadioOff.png | —                |
-| Bounce FM | img/BounceFM.png | Bounce-FM.ogg    |
-| CSR 103.9 | img/CSR1039.png  | CSR-1039.ogg     |
-| …         | …                | …                |
-
-La UI permite:
-
-* Mantener presionado para abrir menú radial
-* Tocar para cambiar emisora
-* Doble toque para siguiente
-* Triple toque para anterior
-
-*(Funciona con eventos táctiles y de ratón.)*
-
----
-
-## 🛠️ Instalación
-
-1. Clona el repositorio
-
-   ```bash
-   git clone https://github.com/joseandressotocornejo-lgtm/gta-map.git
-   ```
-2. Abre `index.html` en tu navegador
-3. Permite acceso a **geolocalización** si quieres usar GPS
-4. Interactúa con el mapa y el menú de radio
-
-*(No requiere backend, solo archivos estáticos.)*
-
----
-
-## 📦 Tecnologías
-
-| Tecnología          | Uso                         |
-| ------------------- | --------------------------- |
-| HTML                | Estructura principal        |
-| CSS                 | Estilos UI                  |
-| JavaScript          | Lógica de mapa y radio      |
-| MapLibre GL         | Renderizado de mapas        |
-| OpenStreetMap tiles | Capas de mapa base          |
-| Geolocation API     | Posicionamiento del usuario |
-
----
-
-## 📝 Ideas para mejorar
-
-✨ Integrar mapas reales de Los Santos u otra ciudad inspirada en GTA
-🔊 Añadir más emisoras con playlists completas
-📍 Mostrar puntos de interés (POI) tipo GTA
-📱 PWA para usar como app en móviles
-🌐 Modo nocturno
-
----
-
+> **Créditos:** Inspirado en el diseño original de Rockstar Games. Las estaciones de radio y logos son propiedad de sus respectivos creadores.
