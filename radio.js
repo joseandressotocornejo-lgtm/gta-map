@@ -14,11 +14,20 @@ const stations = [
     { name: "Guardians of the Galaxy", logo: "img/Guardians of the Galaxy.png", file: "https://www.dropbox.com/scl/fi/g6uxuktvqu41sa8kv1k6r/Guardians-of-the-Galaxy.ogg?rlkey=wljmxuoa35ulnr62g66ccdvgg&st=ku9pq08h&raw=1", duration: 3217 }
 ];
 
-let currentIdx = 0; let tempIdx = 0; let isHolding = false; let holdTimer; let lastClickTime = 0; let hideTimeout;
+let currentIdx = 0; 
+let tempIdx = 0; 
+let isHolding = false; 
+let holdTimer; 
+let clickCount = 0;
+let clickTimer;
+let hideTimeout;
+
 const radioUi = document.getElementById('radio-ui');
 const audio = document.getElementById('radio-audio');
 const staticSfx = document.getElementById('static-sfx');
+const menuSfx = document.getElementById('menu-sfx');
 
+// Crear iconos radiales
 stations.forEach((s, i) => {
     const angle = (i / stations.length) * Math.PI * 2 - Math.PI / 2;
     const x = 50 + Math.cos(angle) * 38;
@@ -29,29 +38,54 @@ stations.forEach((s, i) => {
     radioUi.appendChild(icon);
 });
 
+function playMenuSfx() {
+    menuSfx.currentTime = 0;
+    menuSfx.play().catch(() => {});
+}
+
 function applyStation(idx) {
-    currentIdx = idx; const s = stations[currentIdx];
+    currentIdx = idx; 
+    const s = stations[currentIdx];
     audio.pause();
+    playMenuSfx(); // Sonido al confirmar estación
+
     if (s.file) {
         const ahora = Math.floor(Date.now() / 1000); 
         audio.src = s.file;
-        audio.onloadedmetadata = () => { audio.currentTime = ahora % s.duration; audio.play().catch(()=>{}); };
+        audio.onloadedmetadata = () => { 
+            audio.currentTime = ahora % s.duration; 
+            audio.play().catch(()=>{}); 
+        };
         audio.load();
-    } else { audio.src = ""; }
+    } else { 
+        audio.src = ""; 
+    }
 }
 
 function updateSelection(idx) {
-    tempIdx = idx; document.getElementById('station-logo').src = stations[idx].logo;
+    if (tempIdx !== idx) playMenuSfx(); // Sonido al pasar por encima de otra radio
+    tempIdx = idx; 
+    document.getElementById('station-logo').src = stations[idx].logo;
     document.getElementById('station-name').innerText = stations[idx].name;
     document.querySelectorAll('.station-icon-radial').forEach(el => el.classList.remove('highlight'));
     document.getElementById(`rad-${idx}`).classList.add('highlight');
-    staticSfx.currentTime = 0; staticSfx.play();
+    staticSfx.currentTime = 0; 
+    staticSfx.play().catch(()=>{});
 }
 
 const handleStart = (e) => {
-    if(e.target.id === 'start-btn') return; // No interferir con el botón de inicio
-    clearTimeout(hideTimeout);
-    holdTimer = setTimeout(() => { isHolding = true; tempIdx = currentIdx; radioUi.classList.add('active'); updateSelection(currentIdx); }, 400);
+    if(e.target.id === 'start-btn') return;
+    
+    // Lógica para detectar clics vs mantener pulsado
+    isHolding = false;
+    clearTimeout(holdTimer);
+    
+    holdTimer = setTimeout(() => {
+        isHolding = true;
+        tempIdx = currentIdx;
+        radioUi.classList.add('active');
+        updateSelection(currentIdx);
+    }, 400);
 };
 
 const handleMove = (e) => {
@@ -64,16 +98,45 @@ const handleMove = (e) => {
     if (index !== tempIdx) updateSelection(index);
 };
 
-const handleEnd = () => {
+const handleEnd = (e) => {
     clearTimeout(holdTimer);
-    if (isHolding) { applyStation(tempIdx); hideTimeout = setTimeout(() => radioUi.classList.remove('active'), 1200); isHolding = false; }
-    else {
-        const now = Date.now();
-        if (now - lastClickTime < 300) { let next = (currentIdx + 1) % stations.length; radioUi.classList.add('active'); updateSelection(next); applyStation(next); hideTimeout = setTimeout(() => radioUi.classList.remove('active'), 1500); }
-        lastClickTime = now;
+
+    if (isHolding) {
+        // Soltamos después de elegir en el menú radial
+        applyStation(tempIdx);
+        hideTimeout = setTimeout(() => radioUi.classList.remove('active'), 800);
+        isHolding = false;
+        clickCount = 0;
+    } else {
+        // Lógica de clics rápidos (Multi-tap)
+        clickCount++;
+        clearTimeout(clickTimer);
+
+        clickTimer = setTimeout(() => {
+            if (clickCount === 2) {
+                // DOBLE CLIC: Siguiente estación
+                let next = (currentIdx + 1) % stations.length;
+                mostrarCambioRapido(next);
+            } else if (clickCount === 3) {
+                // TRIPLE CLIC: Estación anterior
+                let prev = (currentIdx - 1 + stations.length) % stations.length;
+                mostrarCambioRapido(prev);
+            }
+            clickCount = 0;
+        }, 300); // Ventana de tiempo para los clics
     }
 };
 
+// Función para mostrar visualmente el cambio rápido sin el menú radial completo
+function mostrarCambioRapido(idx) {
+    radioUi.classList.add('active');
+    updateSelection(idx);
+    applyStation(idx);
+    clearTimeout(hideTimeout);
+    hideTimeout = setTimeout(() => radioUi.classList.remove('active'), 1200);
+}
+
+// Eventos
 window.addEventListener('touchstart', handleStart, {passive: false});
 window.addEventListener('touchmove', handleMove, {passive: false});
 window.addEventListener('touchend', handleEnd);
