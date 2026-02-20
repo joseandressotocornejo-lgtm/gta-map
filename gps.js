@@ -36,7 +36,7 @@ function aplicarColoresGTA() {
             map.setPaintProperty(layer.id, 'text-halo-width', 1);
         }
 
-        // 3. CALLES (Tu código exacto con una mejora de detección)
+        // 3. CALLES (Mejora de detección)
         const esVia = layer.id.includes('highway') || layer.id.includes('bridge') || layer.id.includes('tunnel') || layer.id.includes('road');
 
         if (layer.type === 'line' && esVia) {
@@ -46,7 +46,7 @@ function aplicarColoresGTA() {
                 map.setPaintProperty(layer.id, 'line-color', paleta.senderos_marron);
                 map.setPaintProperty(layer.id, 'line-width', 2);
             } else {
-                // AQUÍ SE FUERZA EL NEGRO
+                // FORZAR NEGRO
                 map.setPaintProperty(layer.id, 'line-color', paleta.calles_negras);
                 map.setPaintProperty(layer.id, 'line-opacity', 1);
                 map.setPaintProperty(layer.id, 'line-width', [
@@ -68,6 +68,27 @@ function aplicarColoresGTA() {
 // Escuchar cuando el estilo cargue
 map.on('style.load', aplicarColoresGTA);
 
+// --- LÓGICA DE PREVENCIÓN DE APAGADO (WAKE LOCK) ---
+let wakeLock = null;
+
+const requestWakeLock = async () => {
+    try {
+        if ('wakeLock' in navigator) {
+            wakeLock = await navigator.wakeLock.request('screen');
+            console.log('Wake Lock activo: La pantalla NO se apagará.');
+        }
+    } catch (err) {
+        console.error(`Error al activar Wake Lock: ${err.message}`);
+    }
+};
+
+// Re-activar si la pestaña vuelve a ser visible
+document.addEventListener('visibilitychange', async () => {
+    if (wakeLock !== null && document.visibilityState === 'visible') {
+        await requestWakeLock();
+    }
+});
+
 // --- LÓGICA DE GPS ---
 let smoothLat = null, smoothLng = null;
 const smoothing = 0.2;
@@ -76,6 +97,9 @@ document.getElementById('start-btn').addEventListener('click', async function() 
     document.getElementById('start-overlay').style.display = 'none';
     document.getElementById('wrapper').style.visibility = 'visible';
     
+    // ACTIVAR EL BLOQUEO DE PANTALLA
+    await requestWakeLock();
+
     // Re-aplicar colores por si acaso al iniciar
     aplicarColoresGTA();
 
