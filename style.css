@@ -1,49 +1,77 @@
 :root { 
-    --hud-size: 85vw; 
-    --max-size: 340px; 
+    /* Ocupa el 98% del ancho de la pantalla para ser lo más grande posible */
+    --hud-size: 98vw; 
+    --max-size: 500px; 
     --gta-yellow: #f9ca24; 
 }
 
 body { 
-    margin: 0; background: #1a3315; 
-    display: flex; justify-content: center; align-items: center; 
-    height: 100vh; overflow: hidden; touch-action: none; 
+    margin: 0; 
+    padding: 0;
+    background: #1a3315; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    height: 100vh; 
+    overflow: hidden; 
+    touch-action: none; 
 }
 
 #start-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000;
-    z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: #000; z-index: 9999; 
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
 }
 
 #start-btn {
-    background: var(--gta-yellow); color: black; border: 4px solid #fff; padding: 20px 50px;
-    font-size: 1.8rem; font-weight: bold; border-radius: 10px; cursor: pointer;
-    font-family: 'Arial Black', sans-serif;
+    background: var(--gta-yellow); color: black; border: 4px solid #fff; 
+    padding: 20px 50px; font-size: 1.8rem; font-weight: bold; 
+    border-radius: 10px; cursor: pointer; font-family: 'Arial Black', sans-serif;
 }
 
 #wrapper { 
-    position: relative; width: var(--hud-size); height: var(--hud-size); 
-    max-width: var(--max-size); max-height: var(--max-size); visibility: hidden; 
+    position: relative; 
+    width: var(--hud-size); 
+    height: var(--hud-size); 
+    max-width: var(--max-size); 
+    max-height: var(--max-size); 
+    visibility: hidden; 
 }
 
 #hud { 
-    position: absolute; width: 100%; height: 100%; 
-    border-radius: 50%; border: 8px solid black; 
-    overflow: hidden; background: #38692d; z-index: 1; 
+    position: absolute; 
+    width: 100%; 
+    height: 100%; 
+    border-radius: 50%; 
+    border: 8px solid black; 
+    overflow: hidden; 
+    background: #38692d; 
+    z-index: 1; 
+    box-sizing: border-box;
 }
 
-#map { position: absolute; width: 100%; height: 100%; }
+#map { 
+    position: absolute; 
+    width: 100%; 
+    height: 100%; 
+}
 
 #player {
-    position: absolute; top: 50%; left: 50%;
-    width: 24px; height: 40px;
+    position: absolute; 
+    top: 50%; 
+    left: 50%;
+    width: 28px; 
+    height: 44px;
     transform: translate(-50%, -50%) rotate(180deg);
     z-index: 10;
+    filter: drop-shadow(0px 0px 2px rgba(0,0,0,0.8));
 }
 
-/* --- ESTA ES LA PARTE DE LA N QUE MODIFICAMOS --- */
+/* --- LOGICA DE LA N (50% DENTRO, 50% FUERA) --- */
 #north-orbit { 
     position: absolute; 
+    top: 0; 
+    left: 0;
     width: 100%; 
     height: 100%; 
     z-index: 20; 
@@ -52,7 +80,8 @@ body {
 
 #north { 
     position: absolute; 
-    top: -22px; /* Posición exacta de tu referencia */
+    /* Ajuste fino para que quede justo al centro del borde de 8px */
+    top: -19px; 
     left: 50%; 
     transform: translateX(-50%); 
     background: black; 
@@ -65,16 +94,55 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    border: 1px solid rgba(255,255,255,0.2);
 }
 
-/* Radio UI se mantiene igual */
+/* --- UI DE RADIO --- */
 #radio-ui {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.7);
-    width: 100%; height: 100%; background: radial-gradient(circle, rgba(0,0,0,0.96) 20%, rgba(0,0,0,0.7) 80%);
-    border-radius: 50%; z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center;
-    opacity: 0; pointer-events: none; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 4px solid var(--gta-yellow);
+    position: absolute; 
+    top: 50%; 
+    left: 50%; 
+    transform: translate(-50%, -50%) scale(0.8);
+    width: 100%; 
+    height: 100%; 
+    background: radial-gradient(circle, rgba(0,0,0,0.96) 20%, rgba(0,0,0,0.7) 80%);
+    border-radius: 50%; 
+    z-index: 100; 
+    display: flex; 
+    flex-direction: column; 
+    justify-content: center; 
+    align-items: center;
+    opacity: 0; 
+    pointer-events: none; 
+    transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+    border: 4px solid var(--gta-yellow);
 }
-#radio-ui.active { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
-.station-icon-radial { position: absolute; width: 45px; height: 45px; transform: translate(-50%, -50%); filter: grayscale(1) opacity(0.4); }
-.station-icon-radial.highlight { filter: grayscale(0) opacity(1); transform: translate(-50%, -50%) scale(1.4); }
-#station-name { color: var(--gta-yellow); font-size: 1.2rem; text-transform: uppercase; margin-top: 10px; text-shadow: 2px 2px 0px black; font-weight: bold; font-family: Arial; }
+
+#radio-ui.active { 
+    opacity: 1; 
+    transform: translate(-50%, -50%) scale(1); 
+    pointer-events: auto; 
+}
+
+.station-icon-radial { 
+    position: absolute; 
+    width: 50px; 
+    height: 50px; 
+    transform: translate(-50%, -50%); 
+    filter: grayscale(1) opacity(0.4); 
+}
+
+.station-icon-radial.highlight { 
+    filter: grayscale(0) opacity(1); 
+    transform: translate(-50%, -50%) scale(1.4); 
+}
+
+#station-name { 
+    color: var(--gta-yellow); 
+    font-size: 1.3rem; 
+    text-transform: uppercase; 
+    margin-top: 15px; 
+    text-shadow: 2px 2px 0px black; 
+    font-weight: bold; 
+    font-family: Arial, sans-serif; 
+}
