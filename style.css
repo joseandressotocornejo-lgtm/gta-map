@@ -2,28 +2,16 @@
     --hud-size: 98vw; 
     --max-size: 500px; 
     --gta-yellow: #f9ca24; 
-    --gta-blue-text: #d1e2f3;
 }
 
-/* Configuración de Fuentes Solicitadas */
-@font-face {
-    font-family: 'Beckett';
-    src: local('Beckett'), local('Beckett Regular');
-}
-
-@font-face {
-    font-family: 'BankGothic';
-    src: local('Bank Gothic'), local('BankGothic Md BT');
-}
-
-/* Reset y Blindaje para Celular */
+/* Blindaje de pantalla completa */
 html, body {
     overscroll-behavior: none;
     overflow: hidden;
     position: fixed;
     width: 100%; height: 100%;
     margin: 0; padding: 0;
-    background: #1a3315; 
+    background: black;
 }
 
 body { 
@@ -31,58 +19,45 @@ body {
     touch-action: none; user-select: none; -webkit-user-select: none;
 }
 
-/* Pantalla de Inicio (Overlay) */
+/* Pantalla de Inicio con Botón Invisible */
 #start-overlay {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background: black; z-index: 9999;
-    display: flex; justify-content: center; align-items: center;
-}
-
-#menu-title {
-    position: absolute;
-    top: 10%;
-    left: 8%;
-    color: #fff;
-    /* Fuente Beckett Regular */
-    font-family: 'Beckett', 'Old English Text MT', serif; 
-    font-size: clamp(2.5rem, 9vw, 4.5rem);
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    /* Usamos tu imagen de fondo directamente */
+    background: url('img/menu-bg.jpg') no-repeat center center;
+    background-size: cover;
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 #start-btn {
-    background: rgba(0, 0, 0, 0.8);
-    border: 3px solid #ffffff;
-    padding: 12px 35px;
-    display: flex; align-items: center;
+    /* Hacemos el botón invisible */
+    background: transparent;
+    border: none;
+    outline: none;
     cursor: pointer;
-    /* Resplandor blanco (Glow) */
-    box-shadow: 0 0 20px #ffffff, inset 0 0 10px rgba(255,255,255,0.2);
-    transition: transform 0.1s;
+    
+    /* Dimensiones para cubrir el área de "INICIAR PARTIDA" */
+    width: 80%;
+    max-width: 400px;
+    height: 100px;
+    
+    /* Posicionamiento: Ajustado para que caiga sobre el texto de la imagen */
+    margin-top: 50px; 
+    
+    /* Para debug: descomenta la línea de abajo si quieres ver dónde está el área de click */
+    /* border: 2px solid red; */
 }
 
-#start-btn:active { transform: scale(0.96); }
-
-.gta-cross {
-    width: 45px; height: 45px;
-    margin-right: 20px;
-    filter: drop-shadow(0 0 5px #fff);
-}
-
-.btn-text {
-    color: var(--gta-blue-text);
-    /* Fuente Bank Gothic */
-    font-family: 'BankGothic', 'Arial Black', sans-serif;
-    font-size: clamp(1.1rem, 4.5vw, 1.7rem);
-    font-weight: bold;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    border-left: 2px solid rgba(255,255,255,0.4);
-    padding-left: 20px;
-}
-
-/* HUD y Contenedor del Mapa */
+/* HUD y Mapa */
 #wrapper { 
-    position: relative; width: var(--hud-size); height: var(--hud-size); 
-    max-width: var(--max-size); max-height: var(--max-size); visibility: hidden; 
+    position: relative; 
+    width: var(--hud-size); height: var(--hud-size); 
+    max-width: var(--max-size); max-height: var(--max-size); 
+    visibility: hidden; 
 }
 
 #hud { 
@@ -101,7 +76,7 @@ body {
     z-index: 10;
 }
 
-/* Indicador del Norte (N) */
+/* Norte "N" en el borde */
 #north-orbit { 
     position: absolute; top: 0; left: 0;
     width: 100%; height: 100%; z-index: 20; pointer-events: none; 
@@ -109,8 +84,7 @@ body {
 
 #north { 
     position: absolute; 
-    /* Calibrado para estar exactamente 50/50 sobre el borde */
-    top: -21px; 
+    top: -21px; /* Centrado en el borde negro */
     left: 50%; 
     transform: translateX(-50%); 
     background: black; color: white; 
@@ -119,7 +93,7 @@ body {
     font-family: Arial, sans-serif;
 }
 
-/* UI de Radio */
+/* Radio UI */
 #radio-ui {
     position: absolute; top: 50%; left: 50%; 
     transform: translate(-50%, -50%) scale(0.8);
@@ -128,15 +102,14 @@ body {
     border-radius: 50%; z-index: 100; 
     display: flex; flex-direction: column; justify-content: center; align-items: center;
     opacity: 0; pointer-events: none; 
-    transition: 0.2s cubic-bezier(0.1, 0.7, 0.1, 1); 
-    border: 4px solid var(--gta-yellow);
+    transition: 0.2s; border: 4px solid var(--gta-yellow);
 }
 
 #radio-ui.active { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
 
 .station-icon-radial { 
     position: absolute; width: 45px; height: 45px; transform: translate(-50%, -50%); 
-    filter: grayscale(1) opacity(0.5); transition: 0.1s;
+    filter: grayscale(1) opacity(0.5); 
 }
 
 .station-icon-radial.highlight { 
@@ -146,5 +119,4 @@ body {
 #station-name { 
     color: var(--gta-yellow); font-size: 1.2rem; text-transform: uppercase; 
     margin-top: 15px; text-shadow: 2px 2px 0px black; font-weight: bold; 
-    font-family: 'BankGothic', sans-serif;
 }
