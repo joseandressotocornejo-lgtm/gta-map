@@ -18,7 +18,6 @@ let currentIdx = 0; let tempIdx = 0; let isHolding = false; let holdTimer; let l
 const radioUi = document.getElementById('radio-ui');
 const audio = document.getElementById('radio-audio');
 const staticSfx = document.getElementById('static-sfx');
-const menuSfx = document.getElementById('menu-sfx');
 
 stations.forEach((s, i) => {
     const angle = (i / stations.length) * Math.PI * 2 - Math.PI / 2;
@@ -32,12 +31,11 @@ stations.forEach((s, i) => {
 
 function applyStation(idx) {
     currentIdx = idx; const s = stations[currentIdx];
-    audio.pause(); audio.onloadedmetadata = null;
+    audio.pause();
     if (s.file) {
         const ahora = Math.floor(Date.now() / 1000); 
-        const puntoDeInicio = ahora % s.duration;
         audio.src = s.file;
-        audio.onloadedmetadata = () => { audio.currentTime = puntoDeInicio; audio.play().catch(() => {}); };
+        audio.onloadedmetadata = () => { audio.currentTime = ahora % s.duration; audio.play().catch(()=>{}); };
         audio.load();
     } else { audio.src = ""; }
 }
@@ -51,18 +49,16 @@ function updateSelection(idx) {
 }
 
 const handleStart = (e) => {
-    if(e.type === 'touchstart') e.preventDefault();
-    clearTimeout(hideTimeout); menuSfx.currentTime = 0; menuSfx.play();
+    if(e.target.id === 'start-btn') return; // No interferir con el botón de inicio
+    clearTimeout(hideTimeout);
     holdTimer = setTimeout(() => { isHolding = true; tempIdx = currentIdx; radioUi.classList.add('active'); updateSelection(currentIdx); }, 400);
 };
 
 const handleMove = (e) => {
     if (!isHolding) return;
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const touch = e.touches ? e.touches[0] : e;
     const rect = radioUi.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2; const centerY = rect.top + rect.height / 2;
-    const angle = Math.atan2(clientY - centerY, clientX - centerX);
+    const angle = Math.atan2(touch.clientY - (rect.top + rect.height/2), touch.clientX - (rect.left + rect.width/2));
     let norm = angle + Math.PI / 2; if (norm < 0) norm += Math.PI * 2;
     const index = Math.round((norm / (Math.PI * 2)) * stations.length) % stations.length;
     if (index !== tempIdx) updateSelection(index);
