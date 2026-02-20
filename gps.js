@@ -1,46 +1,63 @@
-const paleta = { agua: '#7088b0', tierra_general: '#38692d', urbano: '#989898', parques: '#788c40', edificios: '#FFFFFF', calles_negras: '#000000', senderos_marron: '#A78C6A' };
-const map = new maplibregl.Map({ container: 'map', style: 'https://tiles.openfreemap.org/styles/bright', center: [-70.6483, -33.4569], zoom: 18, pitch: 0, bearing: 0, attributionControl: false, interactive: false });
+const paleta = { agua: '#7088b0', tierra: '#38692d', edificios: '#FFFFFF', calles: '#000000', senderos: '#A78C6A' };
+const map = new maplibregl.Map({ 
+    container: 'map', 
+    style: 'https://tiles.openfreemap.org/styles/bright', 
+    center: [-70.6483, -33.4569], 
+    zoom: 18, 
+    attributionControl: false, 
+    interactive: false 
+});
 
 map.on('style.load', () => {
-    map.setPaintProperty('background', 'background-color', paleta.tierra_general);
+    map.setPaintProperty('background', 'background-color', paleta.tierra);
     if (map.getLayer('building')) { map.setPaintProperty('building', 'fill-color', paleta.edificios); map.setPaintProperty('building', 'fill-outline-color', '#000000'); }
     map.getStyle().layers.forEach(layer => {
-        if (map.getLayer('water')) map.setPaintProperty('water', 'fill-color', paleta.agua);
-        if (map.getLayer('park')) map.setPaintProperty('park', 'fill-color', paleta.parques);
-        const esVia = layer.id.includes('highway') || layer.id.includes('bridge') || layer.id.includes('tunnel');
-        if (layer.type === 'line' && esVia) {
-            const esSendero = layer.id.includes('path') || layer.id.includes('footway') || layer.id.includes('track');
-            if (esSendero) { map.setPaintProperty(layer.id, 'line-color', paleta.senderos_marron); map.setPaintProperty(layer.id, 'line-width', 3); }
-            else { map.setPaintProperty(layer.id, 'line-color', paleta.calles_negras); map.setPaintProperty(layer.id, 'line-width', ['interpolate', ['linear'], ['zoom'], 14, 2, 18, 10]); }
+        if (layer.id.includes('water')) map.setPaintProperty(layer.id, 'fill-color', paleta.agua);
+        if (layer.id.includes('park') || layer.id.includes('landuse')) map.setPaintProperty(layer.id, 'fill-color', paleta.tierra);
+        if (layer.type === 'line') {
+            const isPath = layer.id.includes('path') || layer.id.includes('footway');
+            map.setPaintProperty(layer.id, 'line-color', isPath ? paleta.senderos : paleta.calles);
+            map.setPaintProperty(layer.id, 'line-width', isPath ? 3 : 8);
         }
     });
 });
 
-function requestPermissions() {
-    navigator.geolocation.getCurrentPosition((pos) => {
-        const [lat, lng] = smoothGPS(pos.coords.latitude, pos.coords.longitude);
-        map.jumpTo({ center: [lng, lat] }); startTracking();
-    }, (err) => { alert("Error GPS: " + err.message); }, { enableHighAccuracy: true });
+let smoothLat = null, smoothLng = null;
+const smoothing = 0.2;
 
-    if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(() => {});
+document.getElementById('start-btn').addEventListener('click', async function() {
+    document.getElementById('start-overlay').style.display = 'none';
+    document.getElementById('wrapper').style.visibility = 'visible';
+
+    // Despertar Audio de sistema
+    document.getElementById('menu-sfx').play().catch(() => {});
+    if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(()=>{});
+
+    // ACTIVACIÓN GPS (Lógica del archivo que funciona)
+    if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(pos => {
+            const { latitude, longitude } = pos.coords;
+            if (smoothLat === null) { smoothLat = latitude; smoothLng = longitude; }
+            else { smoothLat = smoothLat * (1-smoothing) + latitude * smoothing; smoothLng = smoothLng * (1-smoothing) + longitude * smoothing; }
+            map.easeTo({ center: [smoothLng, smoothLat], duration: 1000 });
+        }, (err) => {
+            alert("Error GPS: Asegúrate de usar HTTPS y activar la ubicación.");
+        }, { enableHighAccuracy: true });
+    }
+
+    // BRÚJULA
+    const handleOrient = (e) => {
+        let heading = e.webkitCompassHeading || (e.alpha ? 360 - e.alpha : 0);
+        map.setBearing(heading);
+        document.getElementById('north-orbit').style.transform = `rotate(${-heading}deg)`;
+    };
+
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission().then(res => { if (res === 'granted') window.addEventListener('deviceorientation', handleOrientation); });
-    } else { window.addEventListener('deviceorientation', handleOrientation); }
-}
-
-document.body.addEventListener('click', requestPermissions, {once: true});
-
-let smoothLat = null, smoothLng = null; const smoothing = 0.18;
-function smoothGPS(lat, lng) { if (smoothLat === null) { smoothLat = lat; smoothLng = lng; } else { smoothLat = smoothLat * (1 - smoothing) + lat * smoothing; smoothLng = smoothLng * (1 - smoothing) + lng * smoothing; } return [smoothLat, smoothLng]; }
-
-function startTracking() { 
-    navigator.geolocation.watchPosition(pos => { 
-        const [lat, lng] = smoothGPS(pos.coords.latitude, pos.coords.longitude); 
-        map.easeTo({ center: [lng, lat], duration: 900, essential: true }); 
-    }, null, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }); 
-}
-
-function handleOrientation(event) { 
-    let rawHeading = event.webkitCompassHeading || (event.alpha ? 360 - event.alpha : 0); 
-    if (rawHeading !== null) { map.setBearing(rawHeading); document.getElementById('north-orbit').style.transform = `rotate(${-rawHeading}deg)`; }
-}
+        try {
+            const response = await DeviceOrientationEvent.requestPermission();
+            if (response === 'granted') window.addEventListener('deviceorientation', handleOrient);
+        } catch (e) { console.error(e); }
+    } else {
+        window.addEventListener('deviceorientation', handleOrient);
+    }
+});
