@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>HUD GPS & Radio</title>
+    <title>HUD Mapa Pro - GPS & Radio SA</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <script src='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js'></script>
     <link href='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css' rel='stylesheet' />
@@ -10,26 +10,28 @@
 </head>
 <body>
 
+<div id="start-overlay">
+    <h1 style="font-family: 'Arial Black'; color: #f9ca24; margin-bottom: 5px;">SAN ANDREAS</h1>
+    <p style="margin-bottom: 25px; color: white;">SISTEMA GPS Y RADIO</p>
+    <button id="start-btn">INICIAR</button>
+</div>
+
 <div id="wrapper">
     <div id="hud">
         <div id="map"></div>
         <svg id="player" viewBox="0 0 34 50">
             <path d="M17 2 C9 2 3 10 3 18 C3 30 17 45 17 45 C17 45 31 30 31 18 C31 10 25 2 17 2 Z" fill="white" stroke="black" stroke-width="4"/>
         </svg>
-
         <div id="radio-ui">
             <div id="noise"></div>
-            <img id="station-logo" src="img/RadioOff.png" alt="radio">
+            <img id="station-logo" src="img/RadioOff.png" style="width:110px">
             <div id="station-name">RADIO OFF</div>
         </div>
     </div>
-
-    <div id="north-orbit">
-        <div id="north">N</div>
-    </div>
+    <div id="north-orbit"><div id="north">N</div></div>
 </div>
 
-<audio id="radio-audio" preload="metadata" loop></audio>
+<audio id="radio-audio" loop></audio>
 <audio id="static-sfx" src="https://www.soundjay.com/tv-and-radio/static-radio-01.mp3"></audio>
 <audio id="menu-sfx" src="img/gta-sa-menu.mp3"></audio>
 
