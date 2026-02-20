@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>HUD GTA sa</title>
+    <title>GPS San Andreas - Definitive Edition</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <script src='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js'></script>
     <link href='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css' rel='stylesheet' />
@@ -11,9 +11,16 @@
 <body>
 
 <div id="start-overlay">
-    <h1 style="font-family: 'Arial Black'; color: #f9ca24; margin-bottom: 5px; text-align: center;">SAN ANDREAS</h1>
-    <p style="margin-bottom: 25px; color: white;">GPS & RADIO SYSTEM</p>
-    <button id="start-btn">INICIAR</button>
+    <div id="menu-title">Menú principal</div>
+    
+    <button id="start-btn">
+        <svg class="gta-cross" viewBox="0 0 100 100">
+            <path d="M50 0 L60 40 L100 50 L60 60 L50 100 L40 60 L0 50 L40 40 Z" fill="#d1e2f3"/>
+        </svg>
+        <div class="btn-content">
+            <span class="btn-text">INICIAR PARTIDA</span>
+        </div>
+    </button>
 </div>
 
 <div id="wrapper">
@@ -29,7 +36,6 @@
     </div>
 
     <div id="radio-ui">
-        <div id="noise"></div>
         <img id="station-logo" src="img/RadioOff.png" style="width:120px">
         <div id="station-name">RADIO OFF</div>
     </div>
@@ -44,4 +50,3 @@
 
 </body>
 </html>
-
