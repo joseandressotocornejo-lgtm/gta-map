@@ -18,8 +18,8 @@ let currentIdx = 0;
 let tempIdx = 0; 
 let isHolding = false; 
 let holdTimer; 
-let clickCount = 0;
-let clickTimer;
+let tapCount = 0;
+let lastTapTime = 0;
 let hideTimeout;
 
 const radioUi = document.getElementById('radio-ui');
@@ -27,7 +27,126 @@ const audio = document.getElementById('radio-audio');
 const staticSfx = document.getElementById('static-sfx');
 const menuSfx = document.getElementById('menu-sfx');
 
-// Crear iconos radiales
+// Sonidos
+function playMenuSfx() {
+    menuSfx.currentTime = 0;
+    menuSfx.play().catch(() => {});
+}
+
+function applyStation(idx) {
+    currentIdx = idx;
+    const s = stations[currentIdx];
+    audio.pause();
+    playMenuSfx();
+    if (s.file) {
+        const ahora = Math.floor(Date.now() / 1000); 
+        audio.src = s.file;
+        audio.onloadedmetadata = () => { 
+            audio.currentTime = ahora % s.duration; 
+            audio.play().catch(()=>{}); 
+        };
+        audio.load();
+    } else { audio.src = ""; }
+}
+
+function updateSelection(idx) {
+    if (tempIdx !== idx) playMenuSfx();
+    tempIdx = idx;
+    document.getElementById('station-logo').src = stations[idx].logo;
+    document.getElementById('station-name').innerText = stations[idx].name;
+    document.querySelectorAll('.station-icon-radial').forEach(el => el.classList.remove('highlight'));
+    const targetIcon = document.getElementById(`rad-${idx}`);
+    if(targetIcon) targetIcon.classList.add('highlight');
+    staticSfx.currentTime = 0;
+    staticSfx.play().catch(()=>{});
+}
+
+function flashRadioUI(idx) {
+    clearTimeout(hideTimeout);
+    radioUi.classList.add('active');
+    updateSelection(idx);
+    applyStation(idx);
+    hideTimeout = setTimeout(() => radioUi.classList.remove('active'), 1200);
+}
+
+// GESTIÓN DE EVENTOS UNIFICADA
+const onPointerDown = (e) => {
+    if(e.target.id === 'start-btn') return;
+    
+    // Evitar scroll y zoom nativo
+    if(e.cancelable) e.preventDefault();
+
+    isHolding = false;
+    clearTimeout(holdTimer);
+    
+    // Si dejamos presionado 350ms se abre el menú radial
+    holdTimer = setTimeout(() => {
+        isHolding = true;
+        tempIdx = currentIdx;
+        radioUi.classList.add('active');
+        updateSelection(currentIdx);
+    }, 350);
+};
+
+const onPointerMove = (e) => {
+    if (!isHolding) return;
+    const touch = e.touches ? e.touches[0] : e;
+    const rect = radioUi.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const angle = Math.atan2(touch.clientY - centerY, touch.clientX - centerX);
+    let norm = angle + Math.PI / 2;
+    if (norm < 0) norm += Math.PI * 2;
+    const index = Math.round((norm / (Math.PI * 2)) * stations.length) % stations.length;
+    if (index !== tempIdx) updateSelection(index);
+};
+
+const onPointerUp = (e) => {
+    clearTimeout(holdTimer);
+
+    if (isHolding) {
+        // Soltamos el menú radial
+        applyStation(tempIdx);
+        setTimeout(() => radioUi.classList.remove('active'), 500);
+        isHolding = false;
+        tapCount = 0; // Resetear toques
+    } else {
+        // LÓGICA DE MULTI-TAP MANUAL
+        const now = Date.now();
+        const interval = now - lastTapTime;
+
+        if (interval < 300) {
+            tapCount++;
+        } else {
+            tapCount = 1;
+        }
+        lastTapTime = now;
+
+        clearTimeout(window.tapTimeout);
+        window.tapTimeout = setTimeout(() => {
+            if (tapCount === 2) {
+                // DOBLE TOQUE: Siguiente
+                let next = (currentIdx + 1) % stations.length;
+                flashRadioUI(next);
+            } else if (tapCount === 3) {
+                // TRIPLE TOQUE: Anterior
+                let prev = (currentIdx - 1 + stations.length) % stations.length;
+                flashRadioUI(prev);
+            }
+            tapCount = 0;
+        }, 300);
+    }
+};
+
+// Listeners con 'passive: false' para que dejen cancelar el zoom nativo
+window.addEventListener('touchstart', onPointerDown, {passive: false});
+window.addEventListener('touchmove', onPointerMove, {passive: false});
+window.addEventListener('touchend', onPointerUp, {passive: false});
+window.addEventListener('mousedown', onPointerDown);
+window.addEventListener('mousemove', onPointerMove);
+window.addEventListener('mouseup', onPointerUp);
+
+// Iconos iniciales
 stations.forEach((s, i) => {
     const angle = (i / stations.length) * Math.PI * 2 - Math.PI / 2;
     const x = 50 + Math.cos(angle) * 38;
@@ -37,109 +156,3 @@ stations.forEach((s, i) => {
     icon.style.left = `${x}%`; icon.style.top = `${y}%`;
     radioUi.appendChild(icon);
 });
-
-function playMenuSfx() {
-    menuSfx.currentTime = 0;
-    menuSfx.play().catch(() => {});
-}
-
-function applyStation(idx) {
-    currentIdx = idx; 
-    const s = stations[currentIdx];
-    audio.pause();
-    playMenuSfx(); // Sonido al confirmar estación
-
-    if (s.file) {
-        const ahora = Math.floor(Date.now() / 1000); 
-        audio.src = s.file;
-        audio.onloadedmetadata = () => { 
-            audio.currentTime = ahora % s.duration; 
-            audio.play().catch(()=>{}); 
-        };
-        audio.load();
-    } else { 
-        audio.src = ""; 
-    }
-}
-
-function updateSelection(idx) {
-    if (tempIdx !== idx) playMenuSfx(); // Sonido al pasar por encima de otra radio
-    tempIdx = idx; 
-    document.getElementById('station-logo').src = stations[idx].logo;
-    document.getElementById('station-name').innerText = stations[idx].name;
-    document.querySelectorAll('.station-icon-radial').forEach(el => el.classList.remove('highlight'));
-    document.getElementById(`rad-${idx}`).classList.add('highlight');
-    staticSfx.currentTime = 0; 
-    staticSfx.play().catch(()=>{});
-}
-
-const handleStart = (e) => {
-    if(e.target.id === 'start-btn') return;
-    
-    // Lógica para detectar clics vs mantener pulsado
-    isHolding = false;
-    clearTimeout(holdTimer);
-    
-    holdTimer = setTimeout(() => {
-        isHolding = true;
-        tempIdx = currentIdx;
-        radioUi.classList.add('active');
-        updateSelection(currentIdx);
-    }, 400);
-};
-
-const handleMove = (e) => {
-    if (!isHolding) return;
-    const touch = e.touches ? e.touches[0] : e;
-    const rect = radioUi.getBoundingClientRect();
-    const angle = Math.atan2(touch.clientY - (rect.top + rect.height/2), touch.clientX - (rect.left + rect.width/2));
-    let norm = angle + Math.PI / 2; if (norm < 0) norm += Math.PI * 2;
-    const index = Math.round((norm / (Math.PI * 2)) * stations.length) % stations.length;
-    if (index !== tempIdx) updateSelection(index);
-};
-
-const handleEnd = (e) => {
-    clearTimeout(holdTimer);
-
-    if (isHolding) {
-        // Soltamos después de elegir en el menú radial
-        applyStation(tempIdx);
-        hideTimeout = setTimeout(() => radioUi.classList.remove('active'), 800);
-        isHolding = false;
-        clickCount = 0;
-    } else {
-        // Lógica de clics rápidos (Multi-tap)
-        clickCount++;
-        clearTimeout(clickTimer);
-
-        clickTimer = setTimeout(() => {
-            if (clickCount === 2) {
-                // DOBLE CLIC: Siguiente estación
-                let next = (currentIdx + 1) % stations.length;
-                mostrarCambioRapido(next);
-            } else if (clickCount === 3) {
-                // TRIPLE CLIC: Estación anterior
-                let prev = (currentIdx - 1 + stations.length) % stations.length;
-                mostrarCambioRapido(prev);
-            }
-            clickCount = 0;
-        }, 300); // Ventana de tiempo para los clics
-    }
-};
-
-// Función para mostrar visualmente el cambio rápido sin el menú radial completo
-function mostrarCambioRapido(idx) {
-    radioUi.classList.add('active');
-    updateSelection(idx);
-    applyStation(idx);
-    clearTimeout(hideTimeout);
-    hideTimeout = setTimeout(() => radioUi.classList.remove('active'), 1200);
-}
-
-// Eventos
-window.addEventListener('touchstart', handleStart, {passive: false});
-window.addEventListener('touchmove', handleMove, {passive: false});
-window.addEventListener('touchend', handleEnd);
-window.addEventListener('mousedown', handleStart);
-window.addEventListener('mousemove', handleMove);
-window.addEventListener('mouseup', handleEnd);
