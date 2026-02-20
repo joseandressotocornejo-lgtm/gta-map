@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>GPS San Andreas</title>
+    <title>GPS San Andreas - Definitive Edition</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <script src='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js'></script>
     <link href='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css' rel='stylesheet' />
@@ -11,7 +11,15 @@
 <body>
 
 <div id="start-overlay">
-    <button id="start-btn"></button>
+    <div class="menu-container">
+        <h1 id="menu-title">Menú principal</h1>
+        
+        <button id="start-btn">
+            <span class="gta-cross">✦</span>
+            <div class="divider"></div>
+            <span class="btn-text">INICIAR PARTIDA</span>
+        </button>
+    </div>
 </div>
 
 <div id="wrapper">
@@ -27,7 +35,7 @@
     </div>
 
     <div id="radio-ui">
-        <img id="station-logo" src="img/RadioOff.png" style="width:120px">
+        <img id="station-logo" src="img/RadioOff.png" alt="Logo Radio" style="width:120px">
         <div id="station-name">RADIO OFF</div>
     </div>
 </div>
