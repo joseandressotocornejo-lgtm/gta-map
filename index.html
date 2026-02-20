@@ -2,123 +2,15 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>HUD Mapa Pro - GPS & Radio SA</title>
+    <title>HUD Mapa Pro - Estilo SA</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-
+    
     <script src='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js'></script>
     <link href='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css' rel='stylesheet' />
-
-    <style>
-        :root {
-            --hud-size: 85vw;
-            --max-size: 550px;
-            --gta-yellow: #f9ca24;
-        }
-
-        body {
-            margin: 0;
-            background: #1a3315; 
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            font-family: 'Segoe UI', Arial, sans-serif;
-            overflow: hidden;
-            touch-action: none;
-        }
-
-        /* Pantalla de inicio crítica */
-        #start-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #000;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-        }
-
-        #start-btn {
-            background: var(--gta-yellow);
-            color: black;
-            border: 4px solid #fff;
-            padding: 20px 50px;
-            font-size: 1.8rem;
-            font-weight: bold;
-            border-radius: 10px;
-            cursor: pointer;
-            font-family: 'Arial Black', sans-serif;
-            box-shadow: 0 0 20px rgba(249, 202, 36, 0.5);
-        }
-
-        #wrapper {
-            position: relative;
-            width: var(--hud-size);
-            height: var(--hud-size);
-            max-width: var(--max-size);
-            max-height: var(--max-size);
-            visibility: hidden; /* Usamos visibility en lugar de display para no romper el mapa */
-        }
-
-        #hud {
-            position: absolute;
-            width: 100%; height: 100%;
-            border-radius: 50%;
-            border: calc(var(--hud-size) * 0.015) solid black;
-            overflow: hidden;
-            background: #38692d;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            z-index: 1;
-        }
-
-        #map { position: absolute; width: 100%; height: 100%; }
-
-        /* Icono del jugador */
-        #player {
-            position: absolute;
-            top: 50%; left: 50%;
-            width: 35px; height: 35px;
-            transform: translate(-50%, -50%) rotate(180deg);
-            z-index: 10;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
-        }
-
-        #radio-ui {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%) scale(0.7);
-            width: 100%; height: 100%;
-            background: radial-gradient(circle, rgba(0,0,0,0.96) 20%, rgba(0,0,0,0.7) 80%);
-            border-radius: 50%;
-            z-index: 100;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            border: 4px solid var(--gta-yellow);
-        }
-
-        #radio-ui.active { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        .station-icon-radial { position: absolute; width: 45px; height: 45px; transform: translate(-50%, -50%); filter: grayscale(1) opacity(0.4); }
-        .station-icon-radial.highlight { filter: grayscale(0) opacity(1); transform: translate(-50%, -50%) scale(1.4); }
-        #station-name { color: var(--gta-yellow); font-size: 1.2rem; text-transform: uppercase; margin-top: 10px; text-shadow: 2px 2px 0px black; font-family: 'Arial Black'; }
-
-        #north-orbit { position: absolute; width: 100%; height: 100%; z-index: 20; pointer-events: none; }
-        #north { position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%); background: black; color: white; font-weight: bold; padding: 5px 15px; border-radius: 50px; }
-    </style>
+    
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-<div id="start-overlay">
-    <h1 style="font-family: 'Arial Black'; color: #f9ca24; margin-bottom: 5px;">SAN ANDREAS</h1>
-    <p style="margin-bottom: 25px;">SISTEMA GPS Y RADIO</p>
-    <button id="start-btn">INICIAR</button>
-</div>
 
 <div id="wrapper">
     <div id="hud">
@@ -126,92 +18,25 @@
         <svg id="player" viewBox="0 0 34 50">
             <path d="M17 2 C9 2 3 10 3 18 C3 30 17 45 17 45 C17 45 31 30 31 18 C31 10 25 2 17 2 Z" fill="white" stroke="black" stroke-width="4"/>
         </svg>
+
         <div id="radio-ui">
-            <img id="station-logo" src="img/RadioOff.png" style="width:110px">
+            <div id="noise"></div>
+            <img id="station-logo" src="img/RadioOff.png" alt="radio">
             <div id="station-name">RADIO OFF</div>
         </div>
     </div>
-    <div id="north-orbit"><div id="north">N</div></div>
+
+    <div id="north-orbit">
+        <div id="north">N</div>
+    </div>
 </div>
 
-<audio id="radio-audio" loop></audio>
+<audio id="radio-audio" preload="metadata" loop></audio>
 <audio id="static-sfx" src="https://www.soundjay.com/tv-and-radio/static-radio-01.mp3"></audio>
 <audio id="menu-sfx" src="img/gta-sa-menu.mp3"></audio>
 
-<script>
-// --- CONFIGURACIÓN DE COLORES (RESTAURADOS) ---
-const paleta = { agua: '#7088b0', tierra: '#38692d', edificios: '#FFFFFF', calles: '#000000', senderos: '#A78C6A' };
-const map = new maplibregl.Map({ 
-    container: 'map', 
-    style: 'https://tiles.openfreemap.org/styles/bright', 
-    center: [-70.6483, -33.4569], 
-    zoom: 18, 
-    attributionControl: false, 
-    interactive: false 
-});
+<script src="radio.js"></script>
+<script src="gps.js"></script>
 
-map.on('style.load', () => {
-    map.setPaintProperty('background', 'background-color', paleta.tierra);
-    if (map.getLayer('building')) { map.setPaintProperty('building', 'fill-color', paleta.edificios); map.setPaintProperty('building', 'fill-outline-color', '#000000'); }
-    map.getStyle().layers.forEach(layer => {
-        if (layer.id.includes('water')) map.setPaintProperty(layer.id, 'fill-color', paleta.agua);
-        if (layer.id.includes('park') || layer.id.includes('landuse')) map.setPaintProperty(layer.id, 'fill-color', paleta.tierra);
-        if (layer.type === 'line') {
-            const isPath = layer.id.includes('path') || layer.id.includes('footway');
-            map.setPaintProperty(layer.id, 'line-color', isPath ? paleta.senderos : paleta.calles);
-            map.setPaintProperty(layer.id, 'line-width', isPath ? 3 : 8);
-        }
-    });
-});
-
-// --- LÓGICA DE SENSORES Y ARRANQUE ---
-let smoothLat = null, smoothLng = null;
-const smoothing = 0.2;
-
-document.getElementById('start-btn').addEventListener('click', async function() {
-    // 1. Ocultar pantalla de inicio
-    document.getElementById('start-overlay').style.display = 'none';
-    document.getElementById('wrapper').style.visibility = 'visible';
-
-    // 2. Intentar activar Audio y WakeLock
-    const menuSfx = document.getElementById('menu-sfx');
-    menuSfx.play().catch(() => {});
-    if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(()=>{});
-
-    // 3. Solicitar GPS inmediatamente
-    if (navigator.geolocation) {
-        navigator.geolocation.watchPosition(pos => {
-            const { latitude, longitude } = pos.coords;
-            if (smoothLat === null) { smoothLat = latitude; smoothLng = longitude; }
-            else { smoothLat = smoothLat * (1-smoothing) + latitude * smoothing; smoothLng = smoothLng * (1-smoothing) + longitude * smoothing; }
-            map.easeTo({ center: [smoothLng, smoothLat], duration: 1000 });
-        }, (err) => {
-            alert("Error GPS: Asegúrate de tener la ubicación activada en el celular.");
-        }, { enableHighAccuracy: true });
-    }
-
-    // 4. Solicitar Brújula (Especial para iPhone)
-    const handleOrient = (e) => {
-        let heading = e.webkitCompassHeading || (e.alpha ? 360 - e.alpha : 0);
-        map.setBearing(heading);
-        document.getElementById('north-orbit').style.transform = `rotate(${-heading}deg)`;
-    };
-
-    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        try {
-            const response = await DeviceOrientationEvent.requestPermission();
-            if (response === 'granted') {
-                window.addEventListener('deviceorientation', handleOrient);
-            }
-        } catch (e) { console.error(e); }
-    } else {
-        window.addEventListener('deviceorientation', handleOrient);
-    }
-});
-
-// --- (Aquí mantén tu lógica de estaciones de radio y eventos de toque) ---
-// ... [Copia la lógica de stations, applyStation, handleStart, handleMove de tu código anterior] ...
-
-</script>
 </body>
 </html>
